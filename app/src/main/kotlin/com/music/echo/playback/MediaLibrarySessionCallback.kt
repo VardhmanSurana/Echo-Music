@@ -130,7 +130,6 @@ constructor(
                            browser.packageName == "com.android.systemui"
 
         val rootExtras = Bundle().apply {
-            putBoolean(MediaConstants.EXTRAS_KEY_MEDIA_ART_SIZE_HINT_PIXELS, true)
             putBoolean("android.media.browse.CONTENT_STYLE_SUPPORTED", true)
             putBoolean("android.media.browse.SEARCH_SUPPORTED", true)
         }
