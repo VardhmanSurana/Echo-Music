@@ -176,6 +176,14 @@ the same recording consolidate into one signal. This is the single invariant the
 whole feature rests on: the write path, the exclusion path, and the engine's
 candidate filter must all call this same function.
 
+> **Case-folding mismatch, open for Task 2.** The backfill runs in SQL, where
+> `lower()` is **ASCII-only**. Kotlin's `lowercase()` is Unicode-aware, so a CJK,
+> Cyrillic or accented-Latin title produces different keys in a backfilled row
+> than in a row written at runtime. Decision deferred to Task 2: either normalise keys
+> once in Kotlin on read, or route all key emission through one shared
+> normaliser. Left open here because it changes the engine's read path, which
+> Task 1 does not touch.
+
 ### 7.3 Required DAO methods
 
 `SongPlayStatsDao`: `find(trackKey)`, `upsert(entity)`,
@@ -217,36 +225,70 @@ Precedent and convention, so nobody is surprised by it:
 INSERT INTO song_play_stats (trackKey, title, artist, videoId, artworkUrl,
                              totalPlayTimeMs, playCount, skipCount, lastPlayedAtMillis)
 SELECT
-  lower(trim(s.title) || '|' || trim(ifnull(group_concat(a.name, ', '), ''))),
+  lower(trim(s.title) || '|' || trim(ifnull(x.artist, ''))),
   s.title,
-  ifnull(group_concat(a.name, ', '), ''),
+  ifnull(x.artist, ''),
   s.id,
   s.thumbnailUrl,
   sum(e.playTime),
   count(*),
   0,
-  max(e.timestamp)          -- epoch millis; NOT strftime (see below)
+  max(e.timestamp) -- epoch millis, not a strftime value
 FROM event e
 JOIN song s ON s.id = e.songId
-LEFT JOIN song_artist_map sam ON sam.songId = s.id
-LEFT JOIN artist a ON a.id = sam.artistId
+LEFT JOIN (
+  SELECT songId, ifnull(group_concat(name, ', '), '') AS artist FROM (
+    SELECT sam.songId AS songId, a.name AS name
+    FROM song_artist_map sam
+    LEFT JOIN artist a ON a.id = sam.artistId
+    ORDER BY sam.songId, sam.position
+  ) GROUP BY songId
+) x ON x.songId = s.id
 WHERE e.playTime > 0
-GROUP BY lower(trim(s.title) || '|' || trim(ifnull(group_concat(a.name, ', '), '')))
+GROUP BY lower(trim(s.title) || '|' || trim(ifnull(x.artist, '')))
 ```
+
+**Why the ordered inner subquery.** `group_concat(a.name, ', ')` without
+`ORDER BY` concatenates in arbitrary order — and the artist string is *part of
+the key*, so the same track could backfill different keys on different
+devices. Ordering by `song_artist_map.position` makes the concatenated string
+deterministic. Note `ORDER BY` *inside* `group_concat()` is not used: it needs
+SQLite 3.44+, which older devices (and the `sqlite-jdbc` test engine) predate.
+The ordered-subquery form runs everywhere.
+
+**Why the derived table `x` is mandatory.** The obvious one-pass form —
+joining `song_artist_map`/`artist` directly and putting
+`group_concat(...)` inside the outer `GROUP BY` — does not parse:
+
+```
+aggregate functions are not allowed in the GROUP BY clause
+```
+
+Artists are therefore aggregated per song in `x`, so the outer `GROUP BY`
+references only plain columns. This also fixes two latent bugs in the naive
+form: `count(*)` would be multiplied by the number of artists (per-event artist
+expansion), and duplicate artist names across events would inflate the row.
 
 Properties of this backfill:
 
-- **`GROUP BY trackKey`** consolidates duplicate uploads: several `videoId`s for
-  the same recording collapse to one row with summed play time. Representative
-  `videoId` is the one with most plays.
+- **`GROUP BY trackKey` consolidates duplicate uploads only when their joined
+  artist string matches.** Two uploads with identical artist lists collapse to
+  one row with summed play time; if one upload lists only the lead artist and
+  the other lists everyone, they produce two distinct keys and thus two rows.
+  This is a key-design consequence, not an SQL defect — and the runtime write
+  path has the same property. See §14. Tier 2 pins all three behaviours:
+  matching-list dupes collapse (`duplicateUploadsOfSameRecordingCollapseIntoOneRow`),
+  differing-list dupes seed distinct rows (`sameTitleWithDifferentArtistsSeedsDistinctRows`),
+  mapping-less songs seed an empty-artist row (`songWithNoArtistMappingSeedsEmptyArtistRow`).
+- The chosen `videoId` is whichever row SQLite picks for the group — an
+  arbitrary member of the consolidated set. Any of them plays the same
+  recording, so this is acceptable; it is **not** "the upload with most plays".
 - **`skipCount = 0` always.** Skip history cannot be reconstructed.
 - **`event.timestamp` is stored as epoch milliseconds (INTEGER)**, via the
   `LocalDateTime` ↔ `Long` converters in `db/Converters.kt`. Existing queries
   compare it directly (`event.timestamp > (:now - 86400000 * 7)`,
   `DatabaseDao.kt:305`). Use `max(e.timestamp)` as-is — do **not** wrap it in
   `strftime`, and do not re-derive it.
-- Duplicate keys across *songs* are collapsed by the `GROUP BY`, so a `GROUP BY`
-  key colliding inside the insert is impossible; no `OR REPLACE` needed.
 
 ## 8. Write path — two hooks in `MusicService.kt`
 
@@ -304,7 +346,7 @@ continue. Telemetry must never crash playback.
 
 1. User opens the Generate screen and taps **Generate**.
    `GenerateViewModel` sets `isGenerating = true`.
-2. Seeds: `songPlayStatsDao.mostPlayedSince(days = 30, limit = 100)` plus
+2. Seeds: `songPlayStatsDao.mostPlayedSince(sinceMillis = now - 30.days, limit = 100)` plus
    `recentlyPlayed(limit = 20)`.
 3. Candidate filter (exact): `skipCount < 2 || totalPlayTimeMs > 45_000`.
 4. Score each seed with these weights:
@@ -461,6 +503,8 @@ This is a five-line workflow change and is in scope for Slice 1.
 | `MusicService.kt` is 4,817 lines | Merge risk | Hooks are additive at two already-identified anchors |
 | `app` module test infrastructure does not exist | Upfront setup cost | Deps listed in §12.3; no new frameworks beyond Robolectric |
 | An earlier taste experiment created `play_event` (with a `skipped` column), `taste_profile` and `brain_activity_log` in migration 37→38, then **dropped them all** via a later `@DeleteTable` spec. `46.json` has no trace of them | Slice 2 could wrongly assume `taste_profile` still exists | Confirmed absent from schema 46. Slice 2 must recreate what it needs on its own version bump, not reuse |
+| Duplicate uploads whose artist lists differ produce two `song_play_stats` rows instead of one | Slightly diluted score for those recordings | Accepted consequence of `title|artist` keying; runtime has the same property. Verified by test, not accidental |
+| `lower()` (SQL, ASCII-only) vs `lowercase()` (Kotlin, Unicode) can disagree on non-ASCII titles | Backfilled key ≠ runtime key for those tracks | Open decision recorded in §7.2; resolve in Task 2 before the engine reads keys |
 
 ## Appendix A — provenance
 
