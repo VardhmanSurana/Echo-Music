@@ -17,6 +17,8 @@ import androidx.room.migration.Migration
 import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
+import echo.music.iad1tya.db.daos.RecommendationExclusionDao
+import echo.music.iad1tya.db.daos.SongPlayStatsDao
 import echo.music.iad1tya.db.daos.SpeedDialDao
 import echo.music.iad1tya.db.entities.AlbumArtistMap
 import echo.music.iad1tya.db.entities.AlbumEntity
@@ -30,12 +32,14 @@ import echo.music.iad1tya.db.entities.PlaylistEntity
 import echo.music.iad1tya.db.entities.PlaylistSongMap
 import echo.music.iad1tya.db.entities.PlaylistSongMapPreview
 import echo.music.iad1tya.db.entities.RecognitionHistory
+import echo.music.iad1tya.db.entities.RecommendationExclusionEntity
 import echo.music.iad1tya.db.entities.RelatedSongMap
 import echo.music.iad1tya.db.entities.SearchHistory
 import echo.music.iad1tya.db.entities.SetVideoIdEntity
 import echo.music.iad1tya.db.entities.SongAlbumMap
 import echo.music.iad1tya.db.entities.SongArtistMap
 import echo.music.iad1tya.db.entities.SongEntity
+import echo.music.iad1tya.db.entities.SongPlayStatsEntity
 import echo.music.iad1tya.db.entities.SortedSongAlbumMap
 import echo.music.iad1tya.db.entities.SortedSongArtistMap
 import echo.music.iad1tya.db.entities.SpeedDialItem
@@ -51,6 +55,12 @@ class MusicDatabase(
 ) : DatabaseDao by delegate.dao {
   val speedDialDao: SpeedDialDao
     get() = delegate.speedDialDao
+
+  val songPlayStatsDao: SongPlayStatsDao
+    get() = delegate.songPlayStatsDao
+
+  val recommendationExclusionDao: RecommendationExclusionDao
+    get() = delegate.recommendationExclusionDao
 
   val openHelper: SupportSQLiteOpenHelper
     get() = delegate.openHelper
@@ -89,7 +99,9 @@ class MusicDatabase(
       PlayCountEntity::class,
       RecognitionHistory::class,
       SpeedDialItem::class,
-      BeatInfoEntity::class
+      BeatInfoEntity::class,
+      SongPlayStatsEntity::class,
+      RecommendationExclusionEntity::class
     ],
   views =
     [
@@ -97,7 +109,7 @@ class MusicDatabase(
       SortedSongAlbumMap::class,
       PlaylistSongMapPreview::class,
     ],
-  version = 46,
+  version = 47,
   exportSchema = true,
   autoMigrations =
     [
@@ -134,12 +146,15 @@ class MusicDatabase(
       AutoMigration(from = 35, to = 36),
       AutoMigration(from = 36, to = 37, spec = Migration36To37Spec::class),
       AutoMigration(from = 41, to = 42, spec = Migration41To42::class),
+      AutoMigration(from = 46, to = 47, spec = Migration46To47Spec::class),
     ],
 )
 @TypeConverters(Converters::class)
 abstract class InternalDatabase : RoomDatabase() {
   abstract val dao: DatabaseDao
   abstract val speedDialDao: SpeedDialDao
+  abstract val songPlayStatsDao: SongPlayStatsDao
+  abstract val recommendationExclusionDao: RecommendationExclusionDao
 
   companion object {
     const val DB_NAME = "song.db"
@@ -1058,3 +1073,58 @@ val MIGRATION_44_45 =
       }
     }
   }
+
+/**
+ * Backfill `song_play_stats` from the accumulated `event` history, run once after Room creates the
+ * new table.
+ *
+ * Notes on the query:
+ * - Artists are aggregated per song in the derived table `x` first. The outer `GROUP BY` therefore
+ *   only references plain columns, because SQLite rejects aggregate functions in a GROUP BY clause.
+ *   The inner subquery orders by `position` so the concatenated artist string — and with it the
+ *   trackKey — is deterministic. (`ORDER BY` inside `group_concat()` would need SQLite 3.44+.)
+ *   Grouping by the full key (rather than by title and artist separately) is what merges the
+ *   handful of key spellings that differ only in surrounding whitespace.
+ * - Grouping on `lower(trim(title) || '|' || trim(artist))` collapses duplicate uploads of the same
+ *   recording into one row; `s.id` / `s.thumbnailUrl` / `s.title` then pick one representative.
+ * - `max(e.timestamp)` is already epoch milliseconds (stored through [Converters]), so it is copied
+ *   verbatim — never strftime-formatted.
+ * - `skipCount` is seeded to 0 because skip history cannot be reconstructed from play events.
+ * - Only `playTime > 0` events count, so a play that never happened contributes neither play time
+ *   nor a play count nor a newer `lastPlayedAtMillis`.
+ */
+val MIGRATION_46_47_BACKFILL_SQL =
+  """
+  INSERT INTO song_play_stats (trackKey, title, artist, videoId, artworkUrl,
+                               totalPlayTimeMs, playCount, skipCount, lastPlayedAtMillis)
+  SELECT
+    lower(trim(s.title) || '|' || trim(ifnull(x.artist, ''))),
+    s.title,
+    ifnull(x.artist, ''),
+    s.id,
+    s.thumbnailUrl,
+    sum(e.playTime),
+    count(*),
+    0,
+    max(e.timestamp) -- epoch millis, not a strftime value
+  FROM event e
+  JOIN song s ON s.id = e.songId
+  LEFT JOIN (
+    SELECT songId, ifnull(group_concat(name, ', '), '') AS artist FROM (
+      SELECT sam.songId AS songId, a.name AS name
+      FROM song_artist_map sam LEFT JOIN artist a ON a.id = sam.artistId
+      ORDER BY sam.songId, sam.position
+    ) GROUP BY songId
+  ) x ON x.songId = s.id
+  WHERE e.playTime > 0
+  GROUP BY lower(trim(s.title) || '|' || trim(ifnull(x.artist, '')))
+  """
+    .trimIndent()
+
+class Migration46To47Spec : AutoMigrationSpec {
+  // ponytail: bridges via SupportSQLiteConnection — silently no-ops under BundledSQLiteDriver.
+  // Override onPostMigrate(SQLiteConnection) too if a KMP driver is ever adopted.
+  override fun onPostMigrate(db: SupportSQLiteDatabase) {
+    db.execSQL(MIGRATION_46_47_BACKFILL_SQL)
+  }
+}

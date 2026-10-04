@@ -40,6 +40,9 @@ dependencies {
   api(libs.ktor.serialization.json)
   api(libs.protobuf.javalite)
   coreLibraryDesugaring(libs.desugaring)
+
+  testImplementation(libs.junit)
+  testImplementation(libs.sqlite.jdbc)
 }
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
