@@ -1,3 +1,5 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 plugins {
   kotlin("multiplatform")
   alias(libs.plugins.compose.multiplatform)
@@ -55,6 +57,7 @@ kotlin {
         implementation("com.github.TeamNewPipe:nanojson:c7a6c1c08d16b6d5ecded34758e6415e07be2166")
       }
     }
+
     val jvmTest by getting {
       dependencies {
         implementation(kotlin("test"))
@@ -67,4 +70,38 @@ kotlin {
       }
     }
   }
+}
+
+compose.desktop {
+  application {
+    mainClass = "echo.music.desktop.MainKt"
+    jvmArgs("-Dfile.encoding=UTF-8")
+    nativeDistributions {
+      targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage)
+      packageName = "echo-music"
+      packageVersion = "1.0.0"
+      description = "Echo Music — YouTube Music & local media player for Linux"
+      vendor = "Echo Music"
+      licenseFile.set(rootProject.file("LICENSE"))
+      linux {
+        iconFile.set(project.file("packaging/icon.png"))
+        menuGroup = "Audio"
+        appCategory = "Audio"
+        debMaintainer = "Echo Music"
+        rpmLicenseType = "GPL-3.0"
+      }
+    }
+  }
+}
+
+tasks.register<Tar>("packageTarGz") {
+  group = "compose desktop"
+  description =
+    "Packages the app image as a .tar.gz archive (jpackage has no native tar.gz target)."
+  dependsOn("packageAppImage")
+  val distributions = compose.desktop.application.nativeDistributions
+  archiveFileName.set("${distributions.packageName}-${distributions.packageVersion}.tar.gz")
+  destinationDirectory.set(layout.buildDirectory.dir("compose/binaries/main/tar.gz"))
+  from(layout.buildDirectory.dir("compose/binaries/main/app"))
+  compression = Compression.GZIP
 }
