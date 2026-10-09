@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Folder
@@ -67,8 +66,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import com.music.innertube.YouTube
 import echo.music.desktop.auth.AuthSyncState
 import echo.music.desktop.local.DesktopPreferences
 import echo.music.desktop.local.LocalMediaScanner
@@ -140,7 +142,10 @@ fun SettingsScreen(
         SettingsCategory.AUDIO -> AudioSettingsGroup(preferences)
         SettingsCategory.CONTENT -> ContentSettingsGroup(preferences)
         SettingsCategory.ACCOUNT ->
-          AccountSettingsGroup(onManualCookieInput = { cookieDialogVisible = true })
+          AccountSettingsGroup(
+            preferences = preferences,
+            onManualCookieInput = { cookieDialogVisible = true },
+          )
         SettingsCategory.INTEGRATIONS -> IntegrationsSettingsGroup(preferences)
         SettingsCategory.STORAGE -> StorageSettingsGroup(preferences, scanner)
         SettingsCategory.ABOUT -> AboutSettingsGroup()
@@ -972,14 +977,17 @@ private fun ContentSettingsGroup(preferences: DesktopPreferences) {
 // 5. ACCOUNT & SYNC (UI ONLY AS REQUESTED)
 // -------------------------------------------------------------
 @Composable
-private fun AccountSettingsGroup(onManualCookieInput: () -> Unit) {
+private fun AccountSettingsGroup(
+  preferences: DesktopPreferences,
+  onManualCookieInput: () -> Unit,
+) {
   val status by AuthSyncState.status.collectAsState()
   var instructionsVisible by remember { mutableStateOf(false) }
   var syncLikedSongs by remember { mutableStateOf(true) }
   var syncPlaylists by remember { mutableStateOf(true) }
   var useLoginForRecommendations by remember { mutableStateOf(true) }
 
-  // User Profile Card (UI Only)
+  // User Profile Card
   Card(
     modifier = Modifier.fillMaxWidth(),
     colors =
@@ -992,27 +1000,44 @@ private fun AccountSettingsGroup(onManualCookieInput: () -> Unit) {
       modifier = Modifier.padding(20.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      Box(
-        modifier =
-          Modifier.size(54.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-        contentAlignment = Alignment.Center,
-      ) {
-        Icon(
-          Icons.Default.AccountCircle,
-          contentDescription = null,
-          tint = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.size(36.dp),
+      if (status.avatarUrl != null) {
+        AsyncImage(
+          model = status.avatarUrl,
+          contentDescription = status.accountName ?: "Account Avatar",
+          modifier = Modifier.size(54.dp).clip(CircleShape),
+          contentScale = ContentScale.Crop,
         )
+      } else {
+        Box(
+          modifier =
+            Modifier.size(54.dp)
+              .clip(CircleShape)
+              .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+          contentAlignment = Alignment.Center,
+        ) {
+          Icon(
+            Icons.Default.AccountCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(36.dp),
+          )
+        }
       }
       Spacer(modifier = Modifier.width(16.dp))
       Column(modifier = Modifier.weight(1f)) {
         Text(
-          text = if (status.synced) "YouTube Music Account" else "Guest Account",
+          text =
+            status.accountName ?: if (status.synced) "YouTube Music Account" else "Guest Account",
           style = MaterialTheme.typography.titleMedium,
           fontWeight = FontWeight.Bold,
         )
+        if (!status.accountEmail.isNullOrBlank()) {
+          Text(
+            text = status.accountEmail.orEmpty(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+          )
+        }
         Text(
           text =
             if (status.synced)
@@ -1023,12 +1048,17 @@ private fun AccountSettingsGroup(onManualCookieInput: () -> Unit) {
         )
       }
       if (status.synced) {
-        Icon(
-          Icons.Default.CheckCircle,
-          contentDescription = "Synced",
-          tint = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.size(24.dp),
-        )
+        OutlinedButton(
+          onClick = {
+            YouTube.cookie = null
+            YouTube.visitorData = null
+            YouTube.dataSyncId = null
+            preferences.clearAuth()
+            AuthSyncState.reset()
+          }
+        ) {
+          Text("Sign Out")
+        }
       }
     }
   }
@@ -1089,7 +1119,8 @@ private fun AccountSettingsGroup(onManualCookieInput: () -> Unit) {
             "1. Open chrome://extensions (or your browser's extension settings).\n" +
               "2. Enable 'Developer mode'.\n" +
               "3. Click 'Load unpacked' and select the 'companion-extension' folder from the Echo Music repository.\n" +
-              "4. Open music.youtube.com and sign in. The extension automatically relays auth tokens to desktop on port 9863.",
+              "4. Open music.youtube.com and sign in.\n" +
+              "5. Click the Echo Music Companion extension icon and select 'Sync to Echo Music'.",
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

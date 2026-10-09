@@ -55,18 +55,45 @@ data class AuthSyncStatus(
   val synced: Boolean = false,
   val lastSyncEpochMs: Long? = null,
   val cookieNames: List<String> = emptyList(),
+  val accountName: String? = null,
+  val accountEmail: String? = null,
+  val avatarUrl: String? = null,
+)
+
+data class AuthPayload(
+  val cookies: Map<String, String>,
+  val visitorData: String? = null,
+  val dataSyncId: String? = null,
 )
 
 object AuthSyncState {
   private val _status = MutableStateFlow(AuthSyncStatus())
   val status: StateFlow<AuthSyncStatus> = _status.asStateFlow()
 
-  fun recordSync(cookies: Map<String, String>, nowEpochMs: Long = System.currentTimeMillis()) {
+  fun recordSync(
+    cookies: Map<String, String>,
+    nowEpochMs: Long = System.currentTimeMillis(),
+    accountName: String? = null,
+    accountEmail: String? = null,
+    avatarUrl: String? = null,
+  ) {
     _status.value =
       AuthSyncStatus(
         synced = true,
         lastSyncEpochMs = nowEpochMs,
         cookieNames = cookies.keys.sorted(),
+        accountName = accountName ?: _status.value.accountName,
+        accountEmail = accountEmail ?: _status.value.accountEmail,
+        avatarUrl = avatarUrl ?: _status.value.avatarUrl,
+      )
+  }
+
+  fun updateAccount(name: String?, email: String?, avatarUrl: String?) {
+    _status.value =
+      _status.value.copy(
+        accountName = name,
+        accountEmail = email,
+        avatarUrl = avatarUrl,
       )
   }
 
@@ -75,15 +102,23 @@ object AuthSyncState {
   }
 }
 
-internal fun defaultCookieSink(cookies: Map<String, String>) {
-  YouTube.cookie = cookies.entries.joinToString(separator = "; ") { "${it.key}=${it.value}" }
+internal fun defaultCookieSink(payload: AuthPayload) {
+  YouTube.cookie =
+    payload.cookies.entries.joinToString(separator = "; ") { "${it.key}=${it.value}" }
+  payload.visitorData?.let { YouTube.visitorData = it }
+  payload.dataSyncId?.let { YouTube.dataSyncId = it }
 }
 
 class LocalAuthServer(
   private val port: Int = DEFAULT_PORT,
   private val tokenTtlMillis: Long = DEFAULT_TOKEN_TTL_MILLIS,
 ) {
-  internal var cookieSink: (Map<String, String>) -> Unit = ::defaultCookieSink
+  internal var cookieSink: (AuthPayload) -> Unit = ::defaultCookieSink
+
+  // Legacy compatibility for simple cookie maps in tests
+  internal fun setLegacyCookieSink(sink: (Map<String, String>) -> Unit) {
+    cookieSink = { payload -> sink(payload.cookies) }
+  }
 
   private val secureRandom = SecureRandom()
   private val tokens = ConcurrentHashMap<String, Long>()
@@ -168,15 +203,24 @@ class LocalAuthServer(
             )
             return@post
           }
-          cookieSink(cookies)
+          val payload = AuthPayload(cookies, request.visitorData, request.dataSyncId)
+          cookieSink(payload)
           AuthSyncState.recordSync(cookies)
-          call.respond(SyncResultResponse("ok"))
+          val currentAccount = AuthSyncState.status.value.accountName
+          call.respond(SyncResultResponse("ok", accountName = currentAccount))
         }
         get("/auth/status") {
           if (!call.requireLoopback()) return@get
           val current = AuthSyncState.status.value
           call.respond(
-            SyncStatusResponse(current.synced, current.lastSyncEpochMs, current.cookieNames)
+            SyncStatusResponse(
+              synced = current.synced,
+              lastSyncEpochMs = current.lastSyncEpochMs,
+              cookieNames = current.cookieNames,
+              accountName = current.accountName,
+              accountEmail = current.accountEmail,
+              avatarUrl = current.avatarUrl,
+            )
           )
         }
       }

@@ -37,6 +37,52 @@ class DesktopPreferences(private val node: Preferences = Preferences.userRoot().
       node.putBoolean(KEY_DESKTOP_NOTIFICATIONS, value)
     }
 
+  // YouTube Music Authentication & Session
+  var authCookie: String?
+    get() = node.get(KEY_AUTH_COOKIE, null)
+    set(value) {
+      putOrRemove(KEY_AUTH_COOKIE, value)
+    }
+
+  var authVisitorData: String?
+    get() = node.get(KEY_AUTH_VISITOR_DATA, null)
+    set(value) {
+      putOrRemove(KEY_AUTH_VISITOR_DATA, value)
+    }
+
+  var authDataSyncId: String?
+    get() = node.get(KEY_AUTH_DATASYNC_ID, null)
+    set(value) {
+      putOrRemove(KEY_AUTH_DATASYNC_ID, value)
+    }
+
+  var authAccountName: String?
+    get() = node.get(KEY_AUTH_ACCOUNT_NAME, null)
+    set(value) {
+      putOrRemove(KEY_AUTH_ACCOUNT_NAME, value)
+    }
+
+  var authAccountEmail: String?
+    get() = node.get(KEY_AUTH_ACCOUNT_EMAIL, null)
+    set(value) {
+      putOrRemove(KEY_AUTH_ACCOUNT_EMAIL, value)
+    }
+
+  var authAvatarUrl: String?
+    get() = node.get(KEY_AUTH_AVATAR_URL, null)
+    set(value) {
+      putOrRemove(KEY_AUTH_AVATAR_URL, value)
+    }
+
+  fun clearAuth() {
+    putOrRemove(KEY_AUTH_COOKIE, null)
+    putOrRemove(KEY_AUTH_VISITOR_DATA, null)
+    putOrRemove(KEY_AUTH_DATASYNC_ID, null)
+    putOrRemove(KEY_AUTH_ACCOUNT_NAME, null)
+    putOrRemove(KEY_AUTH_ACCOUNT_EMAIL, null)
+    putOrRemove(KEY_AUTH_AVATAR_URL, null)
+  }
+
   // Appearance
   var themeMode: String?
     get() = node.get(KEY_THEME_MODE, null)
@@ -344,5 +390,11 @@ class DesktopPreferences(private val node: Preferences = Preferences.userRoot().
     private const val KEY_LISTEN_BRAINZ_TOKEN = "listenBrainzToken"
     private const val KEY_MAX_AUDIO_CACHE_MB = "maxAudioCacheMb"
     private const val KEY_MAX_IMAGE_CACHE_MB = "maxImageCacheMb"
+    private const val KEY_AUTH_COOKIE = "authCookie"
+    private const val KEY_AUTH_VISITOR_DATA = "authVisitorData"
+    private const val KEY_AUTH_DATASYNC_ID = "authDataSyncId"
+    private const val KEY_AUTH_ACCOUNT_NAME = "authAccountName"
+    private const val KEY_AUTH_ACCOUNT_EMAIL = "authAccountEmail"
+    private const val KEY_AUTH_AVATAR_URL = "authAvatarUrl"
   }
 }

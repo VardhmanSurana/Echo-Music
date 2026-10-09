@@ -28,6 +28,8 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.music.innertube.YouTube
+import echo.music.desktop.auth.AuthSyncState
 import echo.music.desktop.auth.LocalAuthServer
 import echo.music.desktop.local.DesktopPreferences
 import echo.music.desktop.local.LocalMediaScanner
@@ -63,6 +65,7 @@ import echo.music.desktop.ui.theme.ThemeMode
 import echo.music.desktop.ui.theme.ThemeSettings
 import echo.music.playback.EngineType
 import echo.music.playback.PlaybackManager
+import kotlinx.coroutines.launch
 
 fun main() = application {
   val windowState =
@@ -97,7 +100,33 @@ fun main() = application {
   val bringToFront = remember { mutableStateOf(false) }
   val exitRequested = remember { mutableStateOf(false) }
 
-  val authServer = remember { LocalAuthServer() }
+  val authServer = remember {
+    LocalAuthServer().apply {
+      cookieSink = { payload ->
+        val cookieString = payload.cookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
+        YouTube.cookie = cookieString
+        payload.visitorData?.let { YouTube.visitorData = it }
+        payload.dataSyncId?.let { YouTube.dataSyncId = it }
+
+        preferences.authCookie = cookieString
+        preferences.authVisitorData = payload.visitorData
+        preferences.authDataSyncId = payload.dataSyncId
+
+        appScope.launch {
+          YouTube.accountInfo()
+            .onSuccess { info ->
+              preferences.authAccountName = info.name
+              preferences.authAccountEmail = info.email
+              preferences.authAvatarUrl = info.thumbnailUrl
+              AuthSyncState.updateAccount(info.name, info.email, info.thumbnailUrl)
+            }
+            .onFailure {
+              System.err.println("Could not resolve account info: ${it.message}")
+            }
+        }
+      }
+    }
+  }
   val trayManager = remember { TrayManager() }
   val visibilitySource = remember { MutableWindowVisibilitySource() }
   val governor = remember {
@@ -115,6 +144,41 @@ fun main() = application {
   LaunchedEffect(lyricsResolver) { lyricsResolver.start() }
 
   LaunchedEffect(Unit) {
+    // Restore persisted YouTube Music session if present
+    preferences.authCookie
+      ?.takeIf { it.isNotBlank() }
+      ?.let { savedCookie ->
+        YouTube.cookie = savedCookie
+        preferences.authVisitorData?.let { YouTube.visitorData = it }
+        preferences.authDataSyncId?.let { YouTube.dataSyncId = it }
+
+        val cookiePairs =
+          savedCookie
+            .split(";")
+            .mapNotNull<String, Pair<String, String>> { part ->
+              val trimmed = part.trim()
+              val eq = trimmed.indexOf('=')
+              if (eq > 0) Pair(trimmed.substring(0, eq), trimmed.substring(eq + 1)) else null
+            }
+            .toMap()
+
+        AuthSyncState.recordSync(
+          cookies = cookiePairs,
+          accountName = preferences.authAccountName,
+          accountEmail = preferences.authAccountEmail,
+          avatarUrl = preferences.authAvatarUrl,
+        )
+
+        appScope.launch {
+          YouTube.accountInfo().onSuccess { info ->
+            preferences.authAccountName = info.name
+            preferences.authAccountEmail = info.email
+            preferences.authAvatarUrl = info.thumbnailUrl
+            AuthSyncState.updateAccount(info.name, info.email, info.thumbnailUrl)
+          }
+        }
+      }
+
     runCatching { authServer.start() }
       .onFailure { System.err.println("LocalAuthServer failed to start: ${it.message}") }
     if (preferences.mprisEnabled) {

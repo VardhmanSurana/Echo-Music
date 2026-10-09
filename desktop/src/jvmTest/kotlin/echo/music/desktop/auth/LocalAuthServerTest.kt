@@ -36,7 +36,7 @@ class LocalAuthServerTest {
     AuthSyncState.reset()
     sunkCookies = null
     server = LocalAuthServer(port = 0)
-    server.cookieSink = { cookies -> sunkCookies = cookies }
+    server.setLegacyCookieSink { cookies -> sunkCookies = cookies }
     server.start()
     client =
       HttpClient(ClientCIO) {
@@ -133,7 +133,7 @@ class LocalAuthServerTest {
   @Test
   fun expiredTokenIsRejected() = runBlocking {
     val shortLived = LocalAuthServer(port = 0, tokenTtlMillis = 0)
-    shortLived.cookieSink = { cookies -> sunkCookies = cookies }
+    shortLived.setLegacyCookieSink { cookies -> sunkCookies = cookies }
     shortLived.start()
     try {
       val response =
@@ -216,6 +216,38 @@ class LocalAuthServerTest {
     assertFalse(isLoopback("127.0.0"))
     assertFalse(isLoopback(""))
     assertFalse(isLoopback(null))
+  }
+
+  @Test
+  fun testSyncWithVisitorDataAndDataSyncId() = runBlocking {
+    var capturedPayload: AuthPayload? = null
+    val customServer = LocalAuthServer(port = 0)
+    customServer.cookieSink = { payload -> capturedPayload = payload }
+    customServer.start()
+    try {
+      val token = handshake(customServer.boundPort).token
+      val cookies = authCookies()
+      val response =
+        client.post("http://$LOOPBACK_HOST:${customServer.boundPort}/auth/sync") {
+          contentType(ContentType.Application.Json)
+          setBody(
+            SyncRequest(
+              token = token,
+              cookies = cookies,
+              visitorData = "visitor-xyz",
+              dataSyncId = "datasync-123",
+              userAgent = "test-agent",
+            )
+          )
+        }
+      assertEquals(HttpStatusCode.OK, response.status)
+      val payload = assertNotNull(capturedPayload)
+      assertEquals("visitor-xyz", payload.visitorData)
+      assertEquals("datasync-123", payload.dataSyncId)
+      assertEquals(cookies, payload.cookies)
+    } finally {
+      customServer.stop()
+    }
   }
 
   private fun authCookies() =

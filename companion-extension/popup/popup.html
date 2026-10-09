@@ -2,56 +2,198 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Echo Music Companion</title>
     <style>
+      :root {
+        --bg-color: #121316;
+        --card-bg: #1c1e22;
+        --card-border: #2a2d34;
+        --text-primary: #ffffff;
+        --text-secondary: #9aa0a6;
+        --primary-red: #ff334b;
+        --primary-red-hover: #ff4d63;
+        --success-color: #34d399;
+        --warning-color: #fbbf24;
+        --error-color: #f87171;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
-        font-family: system-ui, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         margin: 0;
         padding: 16px;
-        width: 280px;
-        color: #1a1a1a;
+        width: 320px;
+        background: var(--bg-color);
+        color: var(--text-primary);
       }
-      h1 {
-        font-size: 14px;
-        margin: 0 0 8px;
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
       }
-      #status {
+      .header img {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+      }
+      .header h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: -0.2px;
+      }
+      .status-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         font-size: 12px;
-        margin: 0 0 4px;
-        min-height: 30px;
       }
-      #status.error {
-        color: #b00020;
+      .status-label {
+        color: var(--text-secondary);
       }
-      #status.success {
-        color: #146c2e;
+      .status-value {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
       }
-      #last-sync {
-        font-size: 11px;
-        color: #666;
-        margin: 0 0 12px;
+      .indicator-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-secondary);
+      }
+      .indicator-dot.online {
+        background: var(--success-color);
+        box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+      }
+      .indicator-dot.offline {
+        background: var(--error-color);
+      }
+      .indicator-dot.warning {
+        background: var(--warning-color);
+      }
+      #message-box {
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 8px 10px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        display: none;
+      }
+      #message-box.info {
+        display: block;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-secondary);
+      }
+      #message-box.success {
+        display: block;
+        background: rgba(52, 211, 153, 0.12);
+        color: var(--success-color);
+        border: 1px solid rgba(52, 211, 153, 0.2);
+      }
+      #message-box.error {
+        display: block;
+        background: rgba(248, 113, 113, 0.12);
+        color: var(--error-color);
+        border: 1px solid rgba(248, 113, 113, 0.2);
+      }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
       button {
         width: 100%;
-        padding: 8px;
+        padding: 10px;
         border: none;
-        border-radius: 6px;
-        background: #c5221f;
-        color: #fff;
-        font-size: 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
+        transition: background 0.15s ease, transform 0.05s ease;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button.primary {
+        background: var(--primary-red);
+        color: #fff;
+      }
+      button.primary:hover:not(:disabled) {
+        background: var(--primary-red-hover);
+      }
+      button.secondary {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        color: var(--text-primary);
+      }
+      button.secondary:hover:not(:disabled) {
+        background: #262930;
       }
       button:disabled {
-        opacity: 0.6;
-        cursor: default;
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .footer {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 11px;
+        color: var(--text-secondary);
       }
     </style>
   </head>
   <body>
-    <h1>Echo Music Companion</h1>
-    <p id="status">Not synced</p>
-    <p id="last-sync"></p>
-    <button id="sync">Sync to Echo Music Desktop</button>
+    <div class="header">
+      <img src="../icons/icon-48.png" alt="Echo Music Logo" />
+      <h1>Echo Music Companion</h1>
+    </div>
+
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-label">Desktop App</span>
+        <span id="desktop-status" class="status-value">
+          <span class="indicator-dot" id="desktop-dot"></span>
+          <span id="desktop-text">Checking…</span>
+        </span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">YouTube Music</span>
+        <span id="yt-status" class="status-value">
+          <span class="indicator-dot" id="yt-dot"></span>
+          <span id="yt-text">Checking…</span>
+        </span>
+      </div>
+      <div class="status-row" id="account-row" style="display: none;">
+        <span class="status-label">Account</span>
+        <span id="account-name" class="status-value" style="color: #fff;"></span>
+      </div>
+    </div>
+
+    <div id="message-box"></div>
+
+    <div class="actions">
+      <button id="sync-btn" class="primary">Sync to Echo Music</button>
+      <button id="open-ytm-btn" class="secondary">Open YouTube Music</button>
+    </div>
+
+    <div class="footer">
+      <span id="last-sync-text"></span>
+    </div>
+
     <script src="popup.js"></script>
   </body>
 </html>
