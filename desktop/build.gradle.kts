@@ -21,6 +21,10 @@ kotlin {
 
         implementation(project(":domain"))
         implementation(project(":metadata"))
+        implementation(project(":playback-core"))
+
+        implementation("com.github.hypfvieh:dbus-java:3.3.2")
+        implementation("org.slf4j:slf4j-simple:2.0.17")
 
         implementation(libs.ktor.client.core)
         implementation(libs.ktor.client.okhttp)
@@ -36,6 +40,7 @@ kotlin {
     val jvmTest by getting {
       dependencies {
         implementation(kotlin("test"))
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
       }
     }
   }
