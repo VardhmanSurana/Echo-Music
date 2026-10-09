@@ -16,6 +16,9 @@ kotlin {
       dependencies {
         implementation(compose.desktop.currentOs)
         implementation("org.jetbrains.compose.material3:material3:1.9.0")
+        implementation(compose.materialIconsExtended)
+
+        implementation(libs.materialKolor)
 
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
