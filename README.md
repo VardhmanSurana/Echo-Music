@@ -1,14 +1,14 @@
 <div align="center">
   <img src="assets/banner.png" alt="Echo Music Logo"/>
 
-  <p><b>A modern Android music app with ad-free streaming, synced lyrics, offline playback, and an intuitive user experience.</b></p>
+  <p><b>A modern music app for Android and Linux Desktop with ad-free streaming, synced lyrics, offline playback, and an intuitive user experience.</b></p>
 </div>
 
 ---
 
 ## Overview
 
-Echo Music delivers a seamless, premium listening experience by leveraging YouTube Music's vast library — without the ads. It adds powerful extras including offline downloads, real-time synchronized lyrics, and environment-aware music recognition.
+Echo Music delivers a seamless, premium listening experience by leveraging YouTube Music's vast library — without the ads. Available for Android and Linux Desktop, it adds powerful extras including offline downloads, local library scanning, real-time synchronized lyrics, environment-aware music recognition, and native desktop integration (MPRIS2, system tray, customizable audio engines).
 
 > [!IMPORTANT]
 > **In-app OTA updates have been permanently removed.** Please update manually via the website. Echo Music is completely free and ad-free; the few ads shown during a manual download help support the ongoing development of this project. Please do not open issues requesting to bring this back. Thank you for your support!
@@ -72,6 +72,9 @@ Echo Music delivers a seamless, premium listening experience by leveraging YouTu
 
 ### What's New
 
+> - **Linux Desktop App** — Native desktop client built with Compose Multiplatform, 3-panel layout, MPRIS2 media keys, tray icon, equalizer, and immersive lyrics visualizer.
+> - **Pluggable Desktop Audio Engines** — Choose between `libmpv`, `GStreamer`, or built-in PCM/FFmpeg fallback engine.
+> - **Companion WebExtension** — 1-click YouTube Music account cookie sync for seamless personal library access on desktop.
 > - **Data Saver Mode (Beta)** — Automatically reduces data usage during playback for limited connections.
 > - **Settings Search Index** — Quickly find and navigate to any settings option instantly.
 > - **Redesigned UI** — Cleaner, faster, and more intuitive interface from the ground up.
@@ -197,6 +200,28 @@ Download the latest pre-compiled APK from the [Releases Page](https://github.com
    _(For optimized ARM64 builds, release builds, or other options, refer to [SETUP.md](SETUP.md))_
 
 </details>
+
+### Linux Desktop Installation & Running
+
+For complete documentation, see the [Linux Desktop Guide](docs/LINUX_DESKTOP.md).
+
+#### Quick Run
+You can run the desktop client directly from source via Gradle (requires JDK 21):
+
+```bash
+./gradlew :desktop:run
+```
+
+#### Package Native Binaries
+Create standalone packages that bundle their own optimized Java runtime:
+
+```bash
+./gradlew :desktop:packageDeb       # Debian / Ubuntu (.deb)
+./gradlew :desktop:packageRpm       # Fedora / RHEL / openSUSE (.rpm)
+./gradlew :desktop:packageTarGz     # Portable tarball (.tar.gz)
+```
+
+The resulting packages will be located in `desktop/build/compose/binaries/main/`.
 
 ---
 
