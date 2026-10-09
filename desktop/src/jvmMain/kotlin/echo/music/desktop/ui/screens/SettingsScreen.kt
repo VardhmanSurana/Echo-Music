@@ -343,12 +343,38 @@ private fun GeneralSettingsGroup(preferences: DesktopPreferences) {
 @Composable
 private fun AppearanceSettingsGroup(preferences: DesktopPreferences) {
   val currentMode by ThemeSettings.mode.collectAsState()
+  var pureBlack by remember { mutableStateOf(preferences.pureBlack) }
   var dynamicPalette by remember { mutableStateOf(preferences.dynamicPalette) }
+  var currentAccentColor by remember { mutableStateOf(preferences.accentColor) }
   var uiDensity by remember { mutableStateOf(preferences.uiDensity) }
+
+  // Player & Artwork styling
+  var playerBgStyle by remember { mutableStateOf(preferences.playerBackgroundStyle) }
+  var thumbnailCornerRadius by remember { mutableStateOf(preferences.thumbnailCornerRadiusDp) }
+  var cropAlbumArt by remember { mutableStateOf(preferences.cropAlbumArt) }
+  var hidePlayerThumbnail by remember { mutableStateOf(preferences.hidePlayerThumbnail) }
+
+  // Lyrics styling
+  var lyricsBlur by remember { mutableStateOf(preferences.lyricsBlur) }
+  var lyricsTextSize by remember { mutableFloatStateOf(preferences.lyricsTextSize) }
+  var lyricsPosition by remember { mutableStateOf(preferences.lyricsPosition) }
+  var lyricsGlow by remember { mutableStateOf(preferences.lyricsGlow) }
+
+  val accentColors =
+    listOf(
+      "Blue (Default)" to 0xFF1E88E5,
+      "Purple" to 0xFF8E24AA,
+      "Teal" to 0xFF00897B,
+      "Emerald" to 0xFF43A047,
+      "Amber" to 0xFFFFB300,
+      "Deep Orange" to 0xFFF4511E,
+      "Crimson" to 0xFFE53935,
+      "Pink" to 0xFFD81B60,
+    )
 
   SettingsGroupCard(
     title = "Theme & Colors",
-    description = "Customize the interface style and dynamic colors.",
+    description = "Customize dark mode behavior, AMOLED pure black, and color palettes.",
   ) {
     Text(
       text = "Theme Mode",
@@ -394,9 +420,22 @@ private fun AppearanceSettingsGroup(preferences: DesktopPreferences) {
     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
     SettingsToggleRow(
-      title = "Dynamic Artwork Palette",
+      title = "AMOLED Pure Black",
       description =
-        "Seed application accent colors dynamically based on currently playing album artwork.",
+        "Use pitch-black (#000000) backgrounds in dark mode instead of standard dark surfaces.",
+      checked = pureBlack,
+      onCheckedChange = {
+        pureBlack = it
+        preferences.pureBlack = it
+        ThemeSettings.setPureBlack(it)
+      },
+    )
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+    SettingsToggleRow(
+      title = "Dynamic Artwork Palette",
+      description = "Extract vibrant accent colors automatically from currently playing album art.",
       checked = dynamicPalette,
       onCheckedChange = {
         dynamicPalette = it
@@ -404,40 +443,251 @@ private fun AppearanceSettingsGroup(preferences: DesktopPreferences) {
       },
     )
 
-    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+    if (!dynamicPalette) {
+      Spacer(modifier = Modifier.height(8.dp))
+      Text(
+        text = "Accent Color Preset",
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium,
+      )
+      Spacer(modifier = Modifier.height(8.dp))
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+      ) {
+        accentColors.forEach { (_, colorVal) ->
+          val isSelected = currentAccentColor == colorVal
+          Box(
+            modifier =
+              Modifier.size(36.dp).clip(CircleShape).background(Color(colorVal)).clickable {
+                currentAccentColor = colorVal
+                preferences.accentColor = colorVal
+                ThemeSettings.setSeedColor(Color(colorVal))
+              },
+            contentAlignment = Alignment.Center,
+          ) {
+            if (isSelected) {
+              Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(Color.White))
+            }
+          }
+        }
+      }
+    }
+  }
 
+  SettingsGroupCard(
+    title = "Player & Album Art",
+    description = "Controls visual presentation for album covers and player screens.",
+  ) {
     Text(
-      text = "UI Density",
+      text = "Player Background Style",
       style = MaterialTheme.typography.bodyMedium,
       fontWeight = FontWeight.Medium,
     )
     Spacer(modifier = Modifier.height(6.dp))
-    listOf("standard" to "Standard Density", "compact" to "Compact Density").forEach { (key, label)
-      ->
-      Row(
-        modifier =
-          Modifier.fillMaxWidth()
-            .selectable(
-              selected = uiDensity == key,
-              onClick = {
-                uiDensity = key
-                preferences.uiDensity = key
-              },
-            )
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        RadioButton(
-          selected = uiDensity == key,
-          onClick = {
-            uiDensity = key
-            preferences.uiDensity = key
-          },
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+    listOf(
+        "GRADIENT" to "Artwork Mesh Gradient",
+        "BLUR" to "Glassmorphism & Live Blur",
+        "DEFAULT" to "Solid Theme Background",
+      )
+      .forEach { (key, label) ->
+        Row(
+          modifier =
+            Modifier.fillMaxWidth()
+              .selectable(
+                selected = playerBgStyle == key,
+                onClick = {
+                  playerBgStyle = key
+                  preferences.playerBackgroundStyle = key
+                },
+              )
+              .padding(vertical = 4.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          RadioButton(
+            selected = playerBgStyle == key,
+            onClick = {
+              playerBgStyle = key
+              preferences.playerBackgroundStyle = key
+            },
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        }
       }
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+      Text(
+        text = "Album Art Corner Radius",
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium,
+      )
+      Text(
+        text = "${thumbnailCornerRadius} dp",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Bold,
+      )
     }
+    Slider(
+      value = thumbnailCornerRadius.toFloat(),
+      onValueChange = {
+        thumbnailCornerRadius = it.roundToInt()
+        preferences.thumbnailCornerRadiusDp = thumbnailCornerRadius
+      },
+      valueRange = 0f..24f,
+      steps = 11,
+    )
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+    SettingsToggleRow(
+      title = "Crop Album Artwork",
+      description = "Crop square artwork slightly to eliminate non-standard borders and margins.",
+      checked = cropAlbumArt,
+      onCheckedChange = {
+        cropAlbumArt = it
+        preferences.cropAlbumArt = it
+      },
+    )
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+    SettingsToggleRow(
+      title = "Hide Album Cover in Bottom Bar",
+      description = "Display track details without album cover thumbnail in the bottom player bar.",
+      checked = hidePlayerThumbnail,
+      onCheckedChange = {
+        hidePlayerThumbnail = it
+        preferences.hidePlayerThumbnail = it
+      },
+    )
+  }
+
+  SettingsGroupCard(
+    title = "Lyrics Presentation",
+    description = "Appearance options for synchronized and synced lyrics views.",
+  ) {
+    SettingsToggleRow(
+      title = "Apple Music Style Backdrop Blur",
+      description = "Render lush background blur animations behind active lyrics.",
+      checked = lyricsBlur,
+      onCheckedChange = {
+        lyricsBlur = it
+        preferences.lyricsBlur = it
+      },
+    )
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+    SettingsToggleRow(
+      title = "Active Line Glow Effect",
+      description = "Add a radiant highlight glow behind the currently sung line.",
+      checked = lyricsGlow,
+      onCheckedChange = {
+        lyricsGlow = it
+        preferences.lyricsGlow = it
+      },
+    )
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+    Text(
+      text = "Lyrics Text Alignment",
+      style = MaterialTheme.typography.bodyMedium,
+      fontWeight = FontWeight.Medium,
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    listOf(
+        "LEFT" to "Left Aligned",
+        "CENTER" to "Center Aligned",
+        "RIGHT" to "Right Aligned",
+      )
+      .forEach { (key, label) ->
+        Row(
+          modifier =
+            Modifier.fillMaxWidth()
+              .selectable(
+                selected = lyricsPosition == key,
+                onClick = {
+                  lyricsPosition = key
+                  preferences.lyricsPosition = key
+                },
+              )
+              .padding(vertical = 4.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          RadioButton(
+            selected = lyricsPosition == key,
+            onClick = {
+              lyricsPosition = key
+              preferences.lyricsPosition = key
+            },
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        }
+      }
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+      Text(
+        text = "Lyrics Font Size",
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium,
+      )
+      Text(
+        text = "${lyricsTextSize.roundToInt()} sp",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Bold,
+      )
+    }
+    Slider(
+      value = lyricsTextSize,
+      onValueChange = {
+        lyricsTextSize = it
+        preferences.lyricsTextSize = it
+      },
+      valueRange = 16f..36f,
+      steps = 10,
+    )
+  }
+
+  SettingsGroupCard(
+    title = "Interface Density",
+    description = "Control spacing, paddings, and font sizes across lists and cards.",
+  ) {
+    listOf(
+        "standard" to "Standard Density (Comfortable)",
+        "compact" to "Compact Density (High Information Density)",
+      )
+      .forEach { (key, label) ->
+        Row(
+          modifier =
+            Modifier.fillMaxWidth()
+              .selectable(
+                selected = uiDensity == key,
+                onClick = {
+                  uiDensity = key
+                  preferences.uiDensity = key
+                },
+              )
+              .padding(vertical = 4.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          RadioButton(
+            selected = uiDensity == key,
+            onClick = {
+              uiDensity = key
+              preferences.uiDensity = key
+            },
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        }
+      }
   }
 }
 

@@ -133,6 +133,9 @@ fun main() = application {
     if (persistedTheme != null) {
       ThemeSettings.setMode(persistedTheme)
     }
+    ThemeSettings.setPureBlack(preferences.pureBlack)
+    ThemeSettings.setSeedColor(androidx.compose.ui.graphics.Color(preferences.accentColor))
+
     val persistedEngine =
       preferences.engineType?.let { stored ->
         runCatching { EngineType.valueOf(stored) }.getOrNull()

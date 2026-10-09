@@ -44,6 +44,18 @@ class DesktopPreferences(private val node: Preferences = Preferences.userRoot().
       putOrRemove(KEY_THEME_MODE, value)
     }
 
+  var pureBlack: Boolean
+    get() = node.getBoolean(KEY_PURE_BLACK, false)
+    set(value) {
+      node.putBoolean(KEY_PURE_BLACK, value)
+    }
+
+  var accentColor: Long
+    get() = node.getLong(KEY_ACCENT_COLOR, 0xFF1E88E5)
+    set(value) {
+      node.putLong(KEY_ACCENT_COLOR, value)
+    }
+
   var dynamicPalette: Boolean
     get() = node.getBoolean(KEY_DYNAMIC_PALETTE, true)
     set(value) {
@@ -54,6 +66,54 @@ class DesktopPreferences(private val node: Preferences = Preferences.userRoot().
     get() = node.get(KEY_UI_DENSITY, "standard")
     set(value) {
       node.put(KEY_UI_DENSITY, value)
+    }
+
+  var playerBackgroundStyle: String
+    get() = node.get(KEY_PLAYER_BG_STYLE, "GRADIENT")
+    set(value) {
+      node.put(KEY_PLAYER_BG_STYLE, value)
+    }
+
+  var thumbnailCornerRadiusDp: Int
+    get() = node.getInt(KEY_THUMBNAIL_CORNER_RADIUS, 12)
+    set(value) {
+      node.putInt(KEY_THUMBNAIL_CORNER_RADIUS, value)
+    }
+
+  var cropAlbumArt: Boolean
+    get() = node.getBoolean(KEY_CROP_ALBUM_ART, false)
+    set(value) {
+      node.putBoolean(KEY_CROP_ALBUM_ART, value)
+    }
+
+  var hidePlayerThumbnail: Boolean
+    get() = node.getBoolean(KEY_HIDE_PLAYER_THUMBNAIL, false)
+    set(value) {
+      node.putBoolean(KEY_HIDE_PLAYER_THUMBNAIL, value)
+    }
+
+  var lyricsBlur: Boolean
+    get() = node.getBoolean(KEY_LYRICS_BLUR, true)
+    set(value) {
+      node.putBoolean(KEY_LYRICS_BLUR, value)
+    }
+
+  var lyricsTextSize: Float
+    get() = node.getFloat(KEY_LYRICS_TEXT_SIZE, 22f)
+    set(value) {
+      node.putFloat(KEY_LYRICS_TEXT_SIZE, value)
+    }
+
+  var lyricsPosition: String
+    get() = node.get(KEY_LYRICS_POSITION, "CENTER")
+    set(value) {
+      node.put(KEY_LYRICS_POSITION, value)
+    }
+
+  var lyricsGlow: Boolean
+    get() = node.getBoolean(KEY_LYRICS_GLOW, false)
+    set(value) {
+      node.putBoolean(KEY_LYRICS_GLOW, value)
     }
 
   // Audio Engine & Equalizer
@@ -248,8 +308,18 @@ class DesktopPreferences(private val node: Preferences = Preferences.userRoot().
     private const val KEY_MPRIS_ENABLED = "mprisEnabled"
     private const val KEY_DESKTOP_NOTIFICATIONS = "desktopNotifications"
     private const val KEY_THEME_MODE = "themeMode"
+    private const val KEY_PURE_BLACK = "pureBlack"
+    private const val KEY_ACCENT_COLOR = "accentColor"
     private const val KEY_DYNAMIC_PALETTE = "dynamicPalette"
     private const val KEY_UI_DENSITY = "uiDensity"
+    private const val KEY_PLAYER_BG_STYLE = "playerBgStyle"
+    private const val KEY_THUMBNAIL_CORNER_RADIUS = "thumbnailCornerRadius"
+    private const val KEY_CROP_ALBUM_ART = "cropAlbumArt"
+    private const val KEY_HIDE_PLAYER_THUMBNAIL = "hidePlayerThumbnail"
+    private const val KEY_LYRICS_BLUR = "lyricsBlur"
+    private const val KEY_LYRICS_TEXT_SIZE = "lyricsTextSize"
+    private const val KEY_LYRICS_POSITION = "lyricsPosition"
+    private const val KEY_LYRICS_GLOW = "lyricsGlow"
     private const val KEY_ENGINE_TYPE = "engineType"
     private const val KEY_EQ_ENABLED = "eqEnabled"
     private const val KEY_EQ_PRESET = "eqPreset"

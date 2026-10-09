@@ -18,25 +18,44 @@ enum class ThemeMode {
 
 object ThemeSettings {
   val mode: MutableStateFlow<ThemeMode> = MutableStateFlow(ThemeMode.SYSTEM)
+  val isPureBlack: MutableStateFlow<Boolean> = MutableStateFlow(false)
+  val seedColor: MutableStateFlow<Color> = MutableStateFlow(BrandColor)
 
   fun setMode(newMode: ThemeMode) {
     mode.value = newMode
+  }
+
+  fun setPureBlack(enabled: Boolean) {
+    isPureBlack.value = enabled
+  }
+
+  fun setSeedColor(color: Color) {
+    seedColor.value = color
   }
 }
 
 val LocalRenderBudget = staticCompositionLocalOf { RenderBudget.FULL }
 
-private val BrandColor = Color(0xFF1E88E5)
+val BrandColor = Color(0xFF1E88E5)
 
 @Composable
 fun Theme(content: @Composable () -> Unit) {
   val mode = ThemeSettings.mode.collectAsState().value
+  val pureBlack = ThemeSettings.isPureBlack.collectAsState().value
+  val seed = ThemeSettings.seedColor.collectAsState().value
+
   val dark =
     when (mode) {
       ThemeMode.SYSTEM -> isSystemInDarkTheme()
       ThemeMode.LIGHT -> false
       ThemeMode.DARK -> true
     }
-  val colorScheme = rememberDynamicColorScheme(seedColor = BrandColor, isDark = dark)
+
+  val colorScheme =
+    rememberDynamicColorScheme(
+      seedColor = seed,
+      isDark = dark,
+      isAmoled = dark && pureBlack,
+    )
   MaterialTheme(colorScheme = colorScheme, content = content)
 }
