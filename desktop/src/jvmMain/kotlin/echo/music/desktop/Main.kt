@@ -1,10 +1,7 @@
 package echo.music.desktop
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -34,18 +31,21 @@ import androidx.compose.ui.window.rememberWindowState
 import echo.music.desktop.auth.LocalAuthServer
 import echo.music.desktop.local.DesktopPreferences
 import echo.music.desktop.local.LocalMediaScanner
+import echo.music.desktop.lyrics.DesktopLyricsResolver
 import echo.music.desktop.playback.DesktopPlaybackResolver
 import echo.music.desktop.system.MprisService
 import echo.music.desktop.system.MutableWindowVisibilitySource
 import echo.music.desktop.system.PerformanceGovernor
 import echo.music.desktop.system.TrayManager
 import echo.music.desktop.ui.components.MiniPlayer
+import echo.music.desktop.ui.components.SyncedLyricsView
 import echo.music.desktop.ui.navigation.DesktopDestination
 import echo.music.desktop.ui.navigation.PlaceholderDestination
 import echo.music.desktop.ui.screens.ExploreScreen
 import echo.music.desktop.ui.screens.ExploreStateHolder
 import echo.music.desktop.ui.screens.HomeScreen
 import echo.music.desktop.ui.screens.HomeStateHolder
+import echo.music.desktop.ui.screens.ImmersiveCanvasScreen
 import echo.music.desktop.ui.screens.LibraryScreen
 import echo.music.desktop.ui.screens.LibraryStateHolder
 import echo.music.desktop.ui.screens.LibraryTab
@@ -76,6 +76,7 @@ fun main() = application {
     )
   }
   val resolver = remember { DesktopPlaybackResolver(appScope) }
+  val lyricsResolver = remember { DesktopLyricsResolver(appScope) }
   val homeState = remember { HomeStateHolder(appScope, resolver) }
   val exploreState = remember { ExploreStateHolder(appScope, resolver) }
   val libraryState = remember { LibraryStateHolder(appScope, resolver) }
@@ -98,6 +99,8 @@ fun main() = application {
   }
 
   var immersiveVisible by remember { mutableStateOf(false) }
+
+  LaunchedEffect(lyricsResolver) { lyricsResolver.start() }
 
   LaunchedEffect(Unit) {
     runCatching { authServer.start() }
@@ -175,6 +178,13 @@ fun main() = application {
               DesktopDestination.EQUALIZER -> PlaceholderDestination(destination)
             }
           },
+          lyricsContent = {
+            SyncedLyricsView(
+              resolver = lyricsResolver,
+              compact = true,
+              modifier = Modifier.fillMaxSize(),
+            )
+          },
           searchContent = { query, onClose -> SearchOverlayContent(query, searchState, onClose) },
           onSearchSubmitted = { searchState.playFirstResult() },
         )
@@ -183,7 +193,7 @@ fun main() = application {
   }
 
   if (immersiveVisible) {
-    ImmersiveWindow(onExit = { immersiveVisible = false })
+    ImmersiveWindow(onExit = { immersiveVisible = false }, lyricsResolver = lyricsResolver)
   }
 
   if (shellState.miniPlayerVisible) {
@@ -192,7 +202,7 @@ fun main() = application {
 }
 
 @Composable
-private fun ImmersiveWindow(onExit: () -> Unit) {
+private fun ImmersiveWindow(onExit: () -> Unit, lyricsResolver: DesktopLyricsResolver) {
   val state = remember { WindowState(placement = WindowPlacement.Fullscreen) }
   Window(onCloseRequest = onExit, state = state, title = "Echo Music", undecorated = true) {
     Surface(
@@ -208,12 +218,7 @@ private fun ImmersiveWindow(onExit: () -> Unit) {
         },
       color = Color.Black,
     ) {
-      Box(
-        modifier = Modifier.fillMaxSize().clickable(onClick = onExit),
-        contentAlignment = Alignment.Center,
-      ) {
-        Text("Immersive mode — click anywhere or press F11 to exit", color = Color.White)
-      }
+      Theme { ImmersiveCanvasScreen(onExit = onExit, lyricsResolver = lyricsResolver) }
     }
   }
 }

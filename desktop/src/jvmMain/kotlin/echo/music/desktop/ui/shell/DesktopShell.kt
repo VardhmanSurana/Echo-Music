@@ -66,6 +66,11 @@ fun DesktopShell(
   onRescanLocalFolders: () -> Unit = {},
   onExportLibrary: () -> Unit = {},
   content: @Composable (DesktopDestination) -> Unit = { PlaceholderDestination(it) },
+  lyricsContent: @Composable () -> Unit = {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+      Text("Lyrics will appear here", style = MaterialTheme.typography.bodyLarge)
+    }
+  },
   searchContent: @Composable (String, () -> Unit) -> Unit = { _, _ -> DefaultSearchHint() },
   onSearchSubmitted: (String) -> Unit = {},
 ) {
@@ -115,7 +120,7 @@ fun DesktopShell(
             enter = expandHorizontally(),
             exit = shrinkHorizontally(),
           ) {
-            QueueLyricsPanel(state = state)
+            QueueLyricsPanel(state = state, lyricsContent = lyricsContent)
           }
         }
         BottomPlayerBar(state = state, onEnterImmersive = onEnterImmersive)

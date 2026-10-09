@@ -13,6 +13,11 @@ kotlin {
   sourceSets {
     val jvmMain by getting {
       kotlin.srcDir("../innertube/src/main/kotlin")
+      kotlin.srcDir("../lrclib/src/main/kotlin")
+      kotlin.srcDir("../kugou/src/main/kotlin")
+      kotlin.srcDir("../betterlyrics/src/main/kotlin")
+      kotlin.srcDir("../simpmusic/src/main/kotlin")
+      kotlin.srcDir("../youlyplus/src/main/kotlin")
       dependencies {
         implementation(compose.desktop.currentOs)
         implementation("org.jetbrains.compose.material3:material3:1.9.0")
@@ -29,12 +34,14 @@ kotlin {
         implementation(project(":domain"))
         implementation(project(":metadata"))
         implementation(project(":playback-core"))
+        implementation(project(":unison"))
 
         implementation("com.github.hypfvieh:dbus-java:3.3.2")
         implementation("org.slf4j:slf4j-simple:2.0.17")
 
         implementation(libs.ktor.client.core)
         implementation(libs.ktor.client.okhttp)
+        implementation(libs.ktor.client.cio)
         implementation(libs.ktor.client.content.negotiation)
         implementation(libs.ktor.serialization.json)
         implementation(libs.ktor.client.encoding)
