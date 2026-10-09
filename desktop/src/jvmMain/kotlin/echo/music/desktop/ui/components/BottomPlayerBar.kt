@@ -1,6 +1,9 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package echo.music.desktop.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Fullscreen
@@ -20,25 +27,23 @@ import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speaker
-import androidx.compose.material.icons.filled.VolumeDown
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -213,17 +218,32 @@ fun BottomPlayerBar(
         Icon(
           imageVector =
             when {
-              volume <= 0f -> Icons.Default.VolumeOff
-              volume < 0.5f -> Icons.Default.VolumeDown
-              else -> Icons.Default.VolumeUp
+              volume <= 0f -> Icons.AutoMirrored.Filled.VolumeOff
+              volume < 0.5f -> Icons.AutoMirrored.Filled.VolumeDown
+              else -> Icons.AutoMirrored.Filled.VolumeUp
             },
           contentDescription = "Mute",
         )
       }
+      @OptIn(ExperimentalMaterial3Api::class)
+      val volumeInteractionSource = remember { MutableInteractionSource() }
       Slider(
         value = volume,
         onValueChange = { PlaybackManager.setVolume(it) },
-        modifier = Modifier.width(100.dp),
+        modifier = Modifier.width(100.dp).height(24.dp),
+        interactionSource = volumeInteractionSource,
+        track = { sliderState ->
+          SliderDefaults.Track(
+            sliderState = sliderState,
+            modifier = Modifier.height(4.dp),
+          )
+        },
+        thumb = {
+          SliderDefaults.Thumb(
+            interactionSource = volumeInteractionSource,
+            thumbSize = androidx.compose.ui.unit.DpSize(10.dp, 10.dp),
+          )
+        },
       )
       Box {
         IconButton(onClick = { outputMenuExpanded = true }) {
@@ -253,7 +273,7 @@ fun BottomPlayerBar(
           state.rightPanelTab = RightPanelTab.QUEUE
         }
       ) {
-        Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
+        Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")
       }
       IconButton(onClick = onEnterImmersive) {
         Icon(Icons.Default.Fullscreen, contentDescription = "Immersive mode")
@@ -309,6 +329,8 @@ private fun ProgressRow(position: Long, duration: Long, enabled: Boolean) {
       style = MaterialTheme.typography.labelSmall,
       modifier = Modifier.width(44.dp),
     )
+    @OptIn(ExperimentalMaterial3Api::class)
+    val progressInteractionSource = remember { MutableInteractionSource() }
     Slider(
       value = fraction,
       onValueChange = { fractionValue -> seekValue = fractionValue * duration },
@@ -317,7 +339,20 @@ private fun ProgressRow(position: Long, duration: Long, enabled: Boolean) {
         seekValue = null
       },
       enabled = enabled && duration > 0,
-      modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+      modifier = Modifier.weight(1f).height(24.dp).padding(horizontal = 8.dp),
+      interactionSource = progressInteractionSource,
+      track = { sliderState ->
+        SliderDefaults.Track(
+          sliderState = sliderState,
+          modifier = Modifier.height(4.dp),
+        )
+      },
+      thumb = {
+        SliderDefaults.Thumb(
+          interactionSource = progressInteractionSource,
+          thumbSize = androidx.compose.ui.unit.DpSize(10.dp, 10.dp),
+        )
+      },
     )
     Text(
       text = formatTime(duration),
