@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Echo Music Companion",
+  "version": "1.0.0",
+  "description": "Syncs your YouTube Music login cookies to the Echo Music desktop app with one click.",
+  "permissions": ["cookies", "storage"],
+  "host_permissions": ["https://music.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Echo Music Companion"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "echo-music-companion@echomusic.app",
+      "strict_min_version": "121.0"
+    }
+  }
+}

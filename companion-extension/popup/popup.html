@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Echo Music Companion</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 16px;
+        width: 280px;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 8px;
+      }
+      #status {
+        font-size: 12px;
+        margin: 0 0 4px;
+        min-height: 30px;
+      }
+      #status.error {
+        color: #b00020;
+      }
+      #status.success {
+        color: #146c2e;
+      }
+      #last-sync {
+        font-size: 11px;
+        color: #666;
+        margin: 0 0 12px;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        border: none;
+        border-radius: 6px;
+        background: #c5221f;
+        color: #fff;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Echo Music Companion</h1>
+    <p id="status">Not synced</p>
+    <p id="last-sync"></p>
+    <button id="sync">Sync to Echo Music Desktop</button>
+    <script src="popup.js"></script>
+  </body>
+</html>
