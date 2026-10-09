@@ -109,7 +109,7 @@ fun LocalMusicScreen(
       roots = roots,
       onAdd = { chooseDirectory()?.let { scanner.addRoot(it) } },
       onRemove = { scanner.removeRoot(it) },
-      modifier = Modifier.width(220.dp).fillMaxHeight(),
+      modifier = Modifier.width(190.dp).fillMaxHeight(),
     )
     HorizontalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
     Column(modifier = Modifier.weight(1f).fillMaxHeight().padding(12.dp)) {
