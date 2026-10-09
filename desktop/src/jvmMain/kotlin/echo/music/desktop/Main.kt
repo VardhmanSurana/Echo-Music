@@ -117,8 +117,10 @@ fun main() = application {
   LaunchedEffect(Unit) {
     runCatching { authServer.start() }
       .onFailure { System.err.println("LocalAuthServer failed to start: ${it.message}") }
-    runCatching { mprisService.start() }
-      .onFailure { System.err.println("MprisService failed to start: ${it.message}") }
+    if (preferences.mprisEnabled) {
+      runCatching { mprisService.start() }
+        .onFailure { System.err.println("MprisService failed to start: ${it.message}") }
+    }
     trayManager.install(
       onOpen = {
         windowState.isMinimized = false
@@ -149,8 +151,16 @@ fun main() = application {
     exitApplication()
   }
 
+  val handleCloseRequest: () -> Unit = {
+    if (preferences.closeToTray) {
+      windowState.isMinimized = true
+    } else {
+      exitRequested.value = true
+    }
+  }
+
   Window(
-    onCloseRequest = { exitRequested.value = true },
+    onCloseRequest = handleCloseRequest,
     state = windowState,
     title = "Echo Music",
   ) {
@@ -173,7 +183,7 @@ fun main() = application {
           DesktopShell(
             state = shellState,
             windowState = windowState,
-            onCloseRequest = { exitRequested.value = true },
+            onCloseRequest = handleCloseRequest,
             onEnterImmersive = { immersiveVisible = !immersiveVisible },
             onOpenFolder = { chooseDirectory()?.let { scanner.addRoot(it) } },
             onRescanLocalFolders = { scanner.rescan() },
