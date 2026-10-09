@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -31,7 +32,6 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -40,6 +40,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -662,7 +663,8 @@ private fun ContentSettingsGroup(preferences: DesktopPreferences) {
           readOnly = true,
           label = { Text("Content Country") },
           trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
-          modifier = Modifier.fillMaxWidth().menuAnchor(),
+          modifier =
+            Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
         ExposedDropdownMenu(
           expanded = countryExpanded,
@@ -693,7 +695,8 @@ private fun ContentSettingsGroup(preferences: DesktopPreferences) {
           readOnly = true,
           label = { Text("Content Language") },
           trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = langExpanded) },
-          modifier = Modifier.fillMaxWidth().menuAnchor(),
+          modifier =
+            Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
         ExposedDropdownMenu(
           expanded = langExpanded,
@@ -801,7 +804,11 @@ private fun AccountSettingsGroup(onManualCookieInput: () -> Unit) {
 
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
       OutlinedButton(onClick = { instructionsVisible = !instructionsVisible }) {
-        Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+        Icon(
+          Icons.AutoMirrored.Filled.OpenInNew,
+          contentDescription = null,
+          modifier = Modifier.size(16.dp),
+        )
         Spacer(modifier = Modifier.width(6.dp))
         Text("Setup Guide")
       }
@@ -1173,7 +1180,11 @@ private fun AboutSettingsGroup() {
           }
         }
       ) {
-        Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+        Icon(
+          Icons.AutoMirrored.Filled.OpenInNew,
+          contentDescription = null,
+          modifier = Modifier.size(16.dp),
+        )
         Spacer(modifier = Modifier.width(6.dp))
         Text("GitHub Repository")
       }
@@ -1185,7 +1196,11 @@ private fun AboutSettingsGroup() {
           }
         }
       ) {
-        Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+        Icon(
+          Icons.AutoMirrored.Filled.OpenInNew,
+          contentDescription = null,
+          modifier = Modifier.size(16.dp),
+        )
         Spacer(modifier = Modifier.width(6.dp))
         Text("Discord Community")
       }
