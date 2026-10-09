@@ -1,6 +1,5 @@
 <div align="center">
-  <img src="assets/banner.png" alt="Echo Music Logo"/>
-
+  <h1>Echo Music</h1>
   <p><b>A modern music app for Android and Linux Desktop with ad-free streaming, synced lyrics, offline playback, and an intuitive user experience.</b></p>
 </div>
 
@@ -22,49 +21,11 @@ Echo Music delivers a seamless, premium listening experience by leveraging YouTu
 ## Table of Contents
 
 - [Overview](#overview)
-- [Screenshots](#screenshots)
 - [Features](#features)
 - [Installation & Setup](#installation--setup)
 - [Support the Project](#support-the-project)
 - [Contributors](#contributors)
 - [Special Thanks](#special-thanks)
-
----
-
-## Screenshots
-
-<div align="left">
-  <table style="margin: 0 auto; border-collapse: collapse;">
-    <tr>
-      <td align="center" style="padding: 15px; border: none;">
-        <b>Home Screen</b><br><br>
-        <img src="Screenshots/Home.png" alt="Home Screen" width="220" style="border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);"/>
-      </td>
-      <td align="center" style="padding: 15px; border: none;">
-        <b>Material Player</b><br><br>
-        <img src="Screenshots/Material%20you%20music%20page.png" alt="Material Player" width="220" style="border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);"/>
-      </td>
-      <td align="center" style="padding: 15px; border: none;">
-        <b>Apple Style Player</b><br><br>
-        <img src="Screenshots/Apple%20inspired%20music%20page.png" alt="Apple Style Player" width="220" style="border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);"/>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" style="padding: 15px; border: none;">
-        <b>Synchronized Lyrics</b><br><br>
-        <img src="Screenshots/lyrics.png" alt="Synchronized Lyrics" width="220" style="border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);"/>
-      </td>
-      <td align="center" style="padding: 15px; border: none;">
-        <b>Search & Explore</b><br><br>
-        <img src="Screenshots/search%20page.png" alt="Search & Explore" width="220" style="border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);"/>
-      </td>
-      <td align="center" style="padding: 15px; border: none;">
-        <b>Music Library</b><br><br>
-        <img src="Screenshots/library.png" alt="Music Library" width="220" style="border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);"/>
-      </td>
-    </tr>
-  </table>
-</div>
 
 ---
 
