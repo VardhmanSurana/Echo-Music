@@ -7,6 +7,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+interface LibC : Library {
+  fun setlocale(category: Int, locale: String): String?
+}
+
 interface MpvLibrary : Library {
   fun mpv_create(): Pointer?
 
@@ -59,6 +63,7 @@ class MpvPlaybackEngine : PlaybackEngine {
   private var eventThread: Thread? = null
 
   init {
+    ensureCLocale()
     var createdLibrary: MpvLibrary? = null
     var createdContext: Pointer? = null
     try {
@@ -73,7 +78,11 @@ class MpvPlaybackEngine : PlaybackEngine {
           "mpv_initialize failed: ${library.errorString(initResult)}"
         )
       }
-      library.mpv_set_option_string(context, "no-video", "")
+      library.mpv_set_option_string(context, "video", "no")
+      library.mpv_set_option_string(context, "vid", "no")
+      library.mpv_set_option_string(context, "audio-display", "no")
+      library.mpv_set_option_string(context, "vo", "null")
+      library.mpv_set_option_string(context, "force-window", "no")
       library.mpv_set_option_string(context, "input-default-bindings", "no")
       library.mpv_set_option_string(context, "input-vo-keyboard", "no")
       library.mpv_set_option_string(context, "osc", "no")
@@ -134,6 +143,27 @@ class MpvPlaybackEngine : PlaybackEngine {
 
   override fun setOutputDevice(device: AudioOutputDevice) {
     setProperty("audio-device", device.id)
+  }
+
+  override fun setPlaybackSpeed(speed: Float) {
+    if (released) return
+    val clamped = speed.coerceIn(0.25f, 4.0f)
+    setProperty("speed", String.format(java.util.Locale.US, "%.2f", clamped))
+  }
+
+  override fun setEqualizer(bands: List<Float>) {
+    if (released) return
+    if (bands.isEmpty() || bands.all { kotlin.math.abs(it) < 0.05f }) {
+      setProperty("af", "")
+      return
+    }
+    val freqs = EQ_FREQUENCIES
+    val filters = bands.mapIndexedNotNull { index, gain ->
+      val freq = freqs.getOrNull(index) ?: return@mapIndexedNotNull null
+      val clampedGain = gain.coerceIn(-24f, 24f)
+      "equalizer=f=$freq:width_type=q:w=1.4:g=${String.format(java.util.Locale.US, "%.1f", clampedGain)}"
+    }
+    setProperty("af", filters.joinToString(","))
   }
 
   override fun release() {
@@ -319,6 +349,22 @@ class MpvPlaybackEngine : PlaybackEngine {
         }
       }
       throw EngineUnavailableException("Could not load libmpv", lastFailure)
+    }
+
+    private val EQ_FREQUENCIES = listOf(31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
+
+    private fun ensureCLocale() {
+      try {
+        val libc = Native.load(com.sun.jna.Platform.C_LIBRARY_NAME, LibC::class.java)
+        libc.setlocale(1, "C")
+        libc.setlocale(4, "C")
+      } catch (_: Throwable) {
+        try {
+          val libc = Native.load("c", LibC::class.java)
+          libc.setlocale(1, "C")
+          libc.setlocale(4, "C")
+        } catch (_: Throwable) {}
+      }
     }
   }
 }

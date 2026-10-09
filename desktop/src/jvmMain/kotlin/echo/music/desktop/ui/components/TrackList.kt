@@ -50,13 +50,16 @@ data class TrackUi(
         artworkUrl = song.thumbnail,
       )
 
-    fun from(file: LocalAudioFile) =
-      TrackUi(
+    fun from(file: LocalAudioFile): TrackUi {
+      val playbackItem = file.toPlaybackItem()
+      return TrackUi(
         title = file.title,
         artist = file.artist.orEmpty(),
         album = file.album.orEmpty(),
         durationMs = file.durationMs,
+        artworkUrl = playbackItem.artworkUrl,
       )
+    }
   }
 }
 

@@ -125,41 +125,58 @@ private fun AppearanceSection(preferences: DesktopPreferences) {
 private fun AudioSection(preferences: DesktopPreferences) {
   val activeEngine by PlaybackManager.activeEngine.collectAsState()
   val volume by PlaybackManager.volume.collectAsState()
-  SettingsCard("Audio") {
+  var configuredEngine by remember {
+    mutableStateOf(
+      preferences.engineType?.let { runCatching { EngineType.valueOf(it) }.getOrNull() }
+        ?: EngineType.AUTO
+    )
+  }
+  SettingsCard("Audio Engine") {
     RadioRow(
-      label = "Auto (libmpv, then GStreamer, then fallback)",
-      selected = activeEngine == EngineType.AUTO,
+      label = "Auto (Recommended: libmpv, then GStreamer, then fallback)",
+      selected = configuredEngine == EngineType.AUTO,
       onSelect = {
-        PlaybackManager.setEngine(EngineType.AUTO)
+        configuredEngine = EngineType.AUTO
         preferences.engineType = EngineType.AUTO.name
+        PlaybackManager.setEngine(EngineType.AUTO)
       },
     )
     RadioRow(
-      label = "GStreamer",
-      selected = activeEngine == EngineType.GSTREAMER,
+      label = "MPV (Direct native playback)",
+      selected = configuredEngine == EngineType.MPV,
       onSelect = {
-        PlaybackManager.setEngine(EngineType.GSTREAMER)
+        configuredEngine = EngineType.MPV
+        preferences.engineType = EngineType.MPV.name
+        PlaybackManager.setEngine(EngineType.MPV)
+      },
+    )
+    RadioRow(
+      label = "GStreamer (Linux system multimedia framework)",
+      selected = configuredEngine == EngineType.GSTREAMER,
+      onSelect = {
+        configuredEngine = EngineType.GSTREAMER
         preferences.engineType = EngineType.GSTREAMER.name
+        PlaybackManager.setEngine(EngineType.GSTREAMER)
       },
     )
     RadioRow(
-      label = "Fallback (built-in)",
-      selected = activeEngine == EngineType.FALLBACK,
+      label = "Fallback (Built-in Java audio)",
+      selected = configuredEngine == EngineType.FALLBACK,
       onSelect = {
-        PlaybackManager.setEngine(EngineType.FALLBACK)
+        configuredEngine = EngineType.FALLBACK
         preferences.engineType = EngineType.FALLBACK.name
+        PlaybackManager.setEngine(EngineType.FALLBACK)
       },
     )
     Spacer(modifier = Modifier.height(8.dp))
     Text(
       text =
-        "Active engine: $activeEngine. If libmpv or GStreamer are missing the next " +
-          "available engine is used automatically.",
+        "Current active engine: $activeEngine. If an engine is unavailable, the player automatically falls back.",
       style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Text(
-      text = "Default volume: ${(volume * 100).toInt()}% (adjust with the player slider).",
+      text = "Current volume: ${(volume * 100).toInt()}% (adjust with the bottom player bar).",
       style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

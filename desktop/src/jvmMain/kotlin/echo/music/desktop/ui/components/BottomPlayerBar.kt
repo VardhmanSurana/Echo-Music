@@ -50,8 +50,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import echo.music.desktop.ui.shell.DesktopShellState
 import echo.music.desktop.ui.shell.RightPanelTab
 import echo.music.desktop.ui.shell.next
@@ -90,7 +92,19 @@ fun BottomPlayerBar(
       modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      ArtworkPlaceholder(title = item?.title ?: "")
+      if (!item?.artworkUrl.isNullOrEmpty()) {
+        AsyncImage(
+          model = item?.artworkUrl,
+          contentDescription = item?.title,
+          contentScale = ContentScale.Crop,
+          modifier =
+            Modifier.size(48.dp)
+              .clip(RoundedCornerShape(8.dp))
+              .background(MaterialTheme.colorScheme.secondaryContainer),
+        )
+      } else {
+        ArtworkPlaceholder(title = item?.title ?: "")
+      }
       Spacer(modifier = Modifier.width(10.dp))
       Column(modifier = Modifier.width(170.dp)) {
         Text(

@@ -1,7 +1,11 @@
 package echo.music.desktop.playback
 
 import com.music.innertube.YouTube
+import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
+import com.music.innertube.models.YTItem
 import com.music.innertube.models.YouTubeClient
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_65_10
@@ -40,6 +44,12 @@ class DesktopPlaybackResolver(
   private val _lastError = MutableStateFlow<String?>(null)
   val lastError: StateFlow<String?> = _lastError.asStateFlow()
 
+  var onQueueOpened: (() -> Unit)? = null
+
+  init {
+    PlaybackManager.streamResolver = { item -> resolveStream(item.id) }
+  }
+
   fun songToItem(song: SongItem): PlaybackMediaItem =
     PlaybackMediaItem(
       id = song.id,
@@ -65,14 +75,64 @@ class DesktopPlaybackResolver(
 
   fun playQueue(songs: List<SongItem>, startIndex: Int) {
     if (songs.isEmpty()) return
+    val clampedStart = startIndex.coerceIn(0, songs.size - 1)
     scope.launch {
-      val resolved = resolveQueue(songs, startIndex)
-      if (resolved == null) {
-        _lastError.value = "Unable to resolve streams for ${songs.size} items"
+      val targetSong = songs[clampedStart]
+      val targetSource = resolveStream(targetSong.id)
+      if (targetSource == null) {
+        _lastError.value = "Unable to resolve stream for \"${targetSong.title}\""
         return@launch
       }
       _lastError.value = null
-      PlaybackManager.playQueue(resolved.first, resolved.second)
+      val items = songs.mapIndexed { index, song ->
+        val item = songToItem(song)
+        if (index == clampedStart) {
+          item.copy(source = targetSource)
+        } else {
+          item
+        }
+      }
+      PlaybackManager.playQueue(items, clampedStart)
+      onQueueOpened?.invoke()
+
+      if (clampedStart + 1 < songs.size) {
+        launch { resolveStream(songs[clampedStart + 1].id) }
+      }
+    }
+  }
+
+  suspend fun openAndPlay(item: YTItem) {
+    when (item) {
+      is SongItem -> playSong(item)
+      is AlbumItem -> {
+        val cleanId = item.browseId.removePrefix("VL")
+        YouTube.album(cleanId)
+          .fold(
+            onSuccess = { page ->
+              if (page.songs.isNotEmpty()) {
+                playQueue(page.songs, 0)
+              } else {
+                showError("Album contains no playable tracks")
+              }
+            },
+            onFailure = { showError(it.message ?: "Failed to open album") },
+          )
+      }
+      is PlaylistItem -> {
+        val cleanId = item.id.removePrefix("VL")
+        YouTube.playlist(cleanId)
+          .fold(
+            onSuccess = { page ->
+              if (page.songs.isNotEmpty()) {
+                playQueue(page.songs, 0)
+              } else {
+                showError("Playlist contains no playable tracks")
+              }
+            },
+            onFailure = { showError(it.message ?: "Failed to open playlist") },
+          )
+      }
+      is ArtistItem -> Unit
     }
   }
 

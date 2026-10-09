@@ -36,6 +36,7 @@ kotlin {
         implementation(project(":domain"))
         implementation(project(":metadata"))
         implementation(project(":playback-core"))
+        implementation("org.freedesktop.gstreamer:gst1-java-core:1.4.0")
         implementation(project(":unison"))
 
         implementation("com.github.hypfvieh:dbus-java:3.3.2")

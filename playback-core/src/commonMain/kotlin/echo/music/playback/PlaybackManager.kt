@@ -91,10 +91,26 @@ object PlaybackManager {
     engine?.seekTo(positionMs)
   }
 
+  var streamResolver: (suspend (PlaybackMediaItem) -> PlaybackMediaItem.Source?)? = null
+
+  @Volatile private var currentSpeed: Float = 1.0f
+  @Volatile private var currentEqualizerBands: List<Float> = emptyList()
+
   fun setVolume(volume: Float) {
     val clamped = volume.coerceIn(0f, 1f)
     _volume.value = clamped
     engine?.setVolume(clamped)
+  }
+
+  fun setPlaybackSpeed(speed: Float) {
+    val clamped = speed.coerceIn(0.25f, 4.0f)
+    currentSpeed = clamped
+    engine?.setPlaybackSpeed(clamped)
+  }
+
+  fun setEqualizer(bands: List<Float>) {
+    currentEqualizerBands = bands
+    engine?.setEqualizer(bands)
   }
 
   fun next() {
@@ -217,13 +233,23 @@ object PlaybackManager {
           _state.value = PlaybackState.Failed("No playback engine available")
           return
         }
-    _currentItem.value = item
+    var activeItem = item
+    if (
+      activeItem.source is PlaybackMediaItem.Source.StreamUrl && activeItem.source.url.isEmpty()
+    ) {
+      val resolvedSource = streamResolver?.invoke(activeItem)
+      if (resolvedSource != null) {
+        activeItem = activeItem.copy(source = resolvedSource)
+        synchronized(lock) { queueManager.updateCurrentItem(activeItem) }
+      }
+    }
+    _currentItem.value = activeItem
     _position.value = startPositionMs
-    _duration.value = item.durationMs
+    _duration.value = activeItem.durationMs
     forwardEngineState = true
     _state.value = PlaybackState.Loading
     try {
-      when (val source = item.source) {
+      when (val source = activeItem.source) {
         is PlaybackMediaItem.Source.StreamUrl ->
           target.loadStream(source.url, source.headers, startPositionMs)
         is PlaybackMediaItem.Source.LocalFile -> target.loadFile(source.path, startPositionMs)
@@ -297,5 +323,7 @@ object PlaybackManager {
       }
     }
     newEngine.setVolume(_volume.value)
+    newEngine.setPlaybackSpeed(currentSpeed)
+    newEngine.setEqualizer(currentEqualizerBands)
   }
 }

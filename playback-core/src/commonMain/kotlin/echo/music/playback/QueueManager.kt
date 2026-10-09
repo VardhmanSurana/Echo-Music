@@ -139,6 +139,15 @@ class QueueManager(private val random: Random = Random.Default) {
     repeatMode = mode
   }
 
+  fun updateCurrentItem(item: PlaybackMediaItem) {
+    val index = _currentIndex.value
+    if (index in _queue.value.indices) {
+      val updated = _queue.value.toMutableList()
+      updated[index] = item
+      _queue.value = updated
+    }
+  }
+
   private fun shuffledKeeping(
     items: List<PlaybackMediaItem>,
     currentIndex: Int,

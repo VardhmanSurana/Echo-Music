@@ -110,7 +110,7 @@ class FallbackAudioEngine : PlaybackEngine {
     }
 
   private fun openFile(path: String, startMs: Long): DecodedInput? {
-    return try {
+    try {
       val raw = AudioSystem.getAudioInputStream(File(path))
       val durationMs =
         if (raw.frameLength > 0 && raw.format.frameRate > 0) {
@@ -120,8 +120,22 @@ class FallbackAudioEngine : PlaybackEngine {
         }
       val converted = toPcm(raw)
       skipFully(converted, msToBytes(startMs, converted.format))
-      DecodedInput(converted, converted.format, durationMs)
-    } catch (t: Throwable) {
+      return DecodedInput(converted, converted.format, durationMs)
+    } catch (_: Throwable) {}
+    return openFfmpegFile(path, startMs)
+  }
+
+  private fun openFfmpegFile(path: String, startMs: Long): DecodedInput? {
+    return try {
+      val command = mutableListOf("ffmpeg", "-nostdin", "-v", "error")
+      if (startMs > 0) {
+        command += listOf("-ss", (startMs / 1000.0).toString())
+      }
+      command += listOf("-i", path, "-f", "s16le", "-ac", "2", "-ar", "44100", "-")
+      val process = ProcessBuilder(command).start()
+      val pcmFormat = AudioFormat(PCM_SAMPLE_RATE, 16, 2, true, false)
+      DecodedInput(process.inputStream, pcmFormat, null, process::destroy)
+    } catch (_: Throwable) {
       null
     }
   }

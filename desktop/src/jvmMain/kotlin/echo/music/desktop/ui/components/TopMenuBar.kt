@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -89,9 +89,10 @@ fun TopMenuBar(
   Row(
     modifier =
       modifier
-        .fillMaxHeight()
-        .background(MaterialTheme.colorScheme.surface)
-        .padding(horizontal = 8.dp),
+        .fillMaxWidth()
+        .height(44.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer)
+        .padding(horizontal = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(
@@ -111,8 +112,6 @@ fun TopMenuBar(
     EngineChip()
     Spacer(modifier = Modifier.width(8.dp))
     SyncStatusDot()
-    Spacer(modifier = Modifier.width(8.dp))
-    WindowControls(onCloseRequest = onCloseRequest)
   }
 }
 

@@ -34,3 +34,5 @@ lastfm-empty/build/
 
 # Logs
 *.log
+
+.commandcode/

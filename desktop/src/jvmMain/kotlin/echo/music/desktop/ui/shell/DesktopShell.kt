@@ -92,6 +92,7 @@ fun DesktopShell(
       Column(modifier = Modifier.fillMaxSize()) {
         TopMenuBar(
           state = state,
+          modifier = Modifier.fillMaxWidth().height(44.dp),
           onOpenFile = onOpenFile,
           onOpenFolder = onOpenFolder,
           onRescanLocalFolders = onRescanLocalFolders,

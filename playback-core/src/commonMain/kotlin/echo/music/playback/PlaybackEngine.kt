@@ -25,6 +25,10 @@ interface PlaybackEngine {
 
   fun setOutputDevice(device: AudioOutputDevice)
 
+  fun setPlaybackSpeed(speed: Float) {}
+
+  fun setEqualizer(bands: List<Float>) {}
+
   fun release()
 }
 

@@ -41,6 +41,7 @@ import echo.music.desktop.ui.components.MiniPlayer
 import echo.music.desktop.ui.components.SyncedLyricsView
 import echo.music.desktop.ui.navigation.DesktopDestination
 import echo.music.desktop.ui.navigation.PlaceholderDestination
+import echo.music.desktop.ui.screens.EqualizerScreen
 import echo.music.desktop.ui.screens.ExploreScreen
 import echo.music.desktop.ui.screens.ExploreStateHolder
 import echo.music.desktop.ui.screens.HomeScreen
@@ -64,7 +65,11 @@ import echo.music.playback.EngineType
 import echo.music.playback.PlaybackManager
 
 fun main() = application {
-  val windowState = rememberWindowState()
+  val windowState =
+    rememberWindowState(
+      size = DpSize(1280.dp, 800.dp),
+      position = WindowPosition.Aligned(Alignment.Center),
+    )
   val shellState = remember { DesktopShellState() }
   val appScope = rememberCoroutineScope()
 
@@ -75,7 +80,14 @@ fun main() = application {
       preferences = preferences,
     )
   }
-  val resolver = remember { DesktopPlaybackResolver(appScope) }
+  val resolver = remember {
+    DesktopPlaybackResolver(appScope).apply {
+      onQueueOpened = {
+        shellState.rightPanelVisible = true
+        shellState.rightPanelTab = echo.music.desktop.ui.shell.RightPanelTab.QUEUE
+      }
+    }
+  }
   val lyricsResolver = remember { DesktopLyricsResolver(appScope) }
   val homeState = remember { HomeStateHolder(appScope, resolver) }
   val exploreState = remember { ExploreStateHolder(appScope, resolver) }
@@ -142,6 +154,7 @@ fun main() = application {
     state = windowState,
     title = "Echo Music",
   ) {
+    window.minimumSize = java.awt.Dimension(960, 600)
     LaunchedEffect(windowState) {
       snapshotFlow { windowState.isMinimized }.collect { visibilitySource.setMinimized(it) }
     }
@@ -153,41 +166,46 @@ fun main() = application {
     }
     CompositionLocalProvider(LocalRenderBudget provides governor.budget.collectAsState().value) {
       Theme {
-        DesktopShell(
-          state = shellState,
-          windowState = windowState,
-          onCloseRequest = { exitRequested.value = true },
-          onEnterImmersive = { immersiveVisible = !immersiveVisible },
-          onOpenFolder = { chooseDirectory()?.let { scanner.addRoot(it) } },
-          onRescanLocalFolders = { scanner.rescan() },
-          content = { destination ->
-            when (destination) {
-              DesktopDestination.HOME -> HomeScreen(homeState)
-              DesktopDestination.EXPLORE -> ExploreScreen(exploreState)
-              DesktopDestination.LIBRARY ->
-                LibraryScreen(libraryState, initialTab = LibraryTab.PLAYLISTS)
-              DesktopDestination.LIKED_SONGS ->
-                LibraryScreen(libraryState, initialTab = LibraryTab.LIKED_SONGS)
-              DesktopDestination.PLAYLISTS ->
-                LibraryScreen(libraryState, initialTab = LibraryTab.PLAYLISTS)
-              DesktopDestination.ARTISTS -> LibraryScreen(libraryState)
-              DesktopDestination.LOCAL_LIBRARY -> LocalMusicScreen(scanner)
-              DesktopDestination.FOLDERS -> LocalMusicScreen(scanner)
-              DesktopDestination.SETTINGS -> SettingsScreen(preferences, scanner)
-              DesktopDestination.DOWNLOADED_OFFLINE -> PlaceholderDestination(destination)
-              DesktopDestination.EQUALIZER -> PlaceholderDestination(destination)
-            }
-          },
-          lyricsContent = {
-            SyncedLyricsView(
-              resolver = lyricsResolver,
-              compact = true,
-              modifier = Modifier.fillMaxSize(),
-            )
-          },
-          searchContent = { query, onClose -> SearchOverlayContent(query, searchState, onClose) },
-          onSearchSubmitted = { searchState.playFirstResult() },
-        )
+        Surface(
+          modifier = Modifier.fillMaxSize(),
+          color = androidx.compose.material3.MaterialTheme.colorScheme.background,
+        ) {
+          DesktopShell(
+            state = shellState,
+            windowState = windowState,
+            onCloseRequest = { exitRequested.value = true },
+            onEnterImmersive = { immersiveVisible = !immersiveVisible },
+            onOpenFolder = { chooseDirectory()?.let { scanner.addRoot(it) } },
+            onRescanLocalFolders = { scanner.rescan() },
+            content = { destination ->
+              when (destination) {
+                DesktopDestination.HOME -> HomeScreen(homeState)
+                DesktopDestination.EXPLORE -> ExploreScreen(exploreState)
+                DesktopDestination.LIBRARY ->
+                  LibraryScreen(libraryState, initialTab = LibraryTab.PLAYLISTS)
+                DesktopDestination.LIKED_SONGS ->
+                  LibraryScreen(libraryState, initialTab = LibraryTab.LIKED_SONGS)
+                DesktopDestination.PLAYLISTS ->
+                  LibraryScreen(libraryState, initialTab = LibraryTab.PLAYLISTS)
+                DesktopDestination.ARTISTS -> LibraryScreen(libraryState)
+                DesktopDestination.LOCAL_LIBRARY -> LocalMusicScreen(scanner)
+                DesktopDestination.FOLDERS -> LocalMusicScreen(scanner)
+                DesktopDestination.SETTINGS -> SettingsScreen(preferences, scanner)
+                DesktopDestination.DOWNLOADED_OFFLINE -> PlaceholderDestination(destination)
+                DesktopDestination.EQUALIZER -> EqualizerScreen(preferences)
+              }
+            },
+            lyricsContent = {
+              SyncedLyricsView(
+                resolver = lyricsResolver,
+                compact = true,
+                modifier = Modifier.fillMaxSize(),
+              )
+            },
+            searchContent = { query, onClose -> SearchOverlayContent(query, searchState, onClose) },
+            onSearchSubmitted = { searchState.playFirstResult() },
+          )
+        }
       }
     }
   }

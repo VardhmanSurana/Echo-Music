@@ -130,6 +130,21 @@ class LocalMediaScannerTest {
     assertTrue(scanner.roots.value.isEmpty())
   }
 
+  @Test
+  fun scansM4aFilesWithoutVideoExceptions() {
+    val realFolder = java.io.File("/run/media/chotaxdon/NewVolume/Media/Songs")
+    if (realFolder.exists() && realFolder.isDirectory) {
+      val result = scan(realFolder.absolutePath)
+      assertTrue(result.files.isNotEmpty(), "Expected scanned files from real folder")
+      val m4aFiles = result.files.filter { it.path.endsWith(".m4a") }
+      assertTrue(m4aFiles.isNotEmpty(), "Expected m4a files to be found")
+      assertTrue(
+        result.errors.none { it.contains(".m4a") },
+        "No m4a errors expected: ${result.errors}",
+      )
+    }
+  }
+
   private fun scan(vararg roots: String): ScanResult {
     val scanner = LocalMediaScanner(initialRoots = roots.toList())
     scanner.rescan()
