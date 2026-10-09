@@ -19,6 +19,10 @@ kotlin {
         implementation(compose.materialIconsExtended)
 
         implementation(libs.materialKolor)
+        implementation(libs.coil)
+        implementation(libs.coil.network.okhttp)
+
+        implementation("net.jthink:jaudiotagger:2.2.5")
 
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
@@ -47,6 +51,7 @@ kotlin {
     val jvmTest by getting {
       dependencies {
         implementation(kotlin("test"))
+        implementation("net.jthink:jaudiotagger:2.2.5")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         implementation(libs.ktor.client.core)
         implementation(libs.ktor.client.cio)

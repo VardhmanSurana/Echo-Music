@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
@@ -65,6 +66,8 @@ fun DesktopShell(
   onRescanLocalFolders: () -> Unit = {},
   onExportLibrary: () -> Unit = {},
   content: @Composable (DesktopDestination) -> Unit = { PlaceholderDestination(it) },
+  searchContent: @Composable (String, () -> Unit) -> Unit = { _, _ -> DefaultSearchHint() },
+  onSearchSubmitted: (String) -> Unit = {},
 ) {
   val rootFocusRequester = remember { FocusRequester() }
   CompositionLocalProvider(LocalDesktopWindowState provides windowState) {
@@ -121,6 +124,8 @@ fun DesktopShell(
         SearchOverlay(
           onClose = { state.searchOpen = false },
           onRootFocusRequested = { rootFocusRequester.requestFocus() },
+          content = searchContent,
+          onSearchSubmitted = onSearchSubmitted,
         )
       }
     }
@@ -134,7 +139,12 @@ fun DesktopShell(
 }
 
 @Composable
-private fun SearchOverlay(onClose: () -> Unit, onRootFocusRequested: () -> Unit) {
+private fun SearchOverlay(
+  onClose: () -> Unit,
+  onRootFocusRequested: () -> Unit,
+  content: @Composable (String, () -> Unit) -> Unit,
+  onSearchSubmitted: (String) -> Unit,
+) {
   var query by remember { mutableStateOf("") }
   val textFieldFocusRequester = remember { FocusRequester() }
   LaunchedEffect(Unit) { textFieldFocusRequester.requestFocus() }
@@ -151,7 +161,7 @@ private fun SearchOverlay(onClose: () -> Unit, onRootFocusRequested: () -> Unit)
   ) {
     Surface(
       modifier =
-        Modifier.padding(top = 72.dp).width(560.dp).onPreviewKeyEvent { event ->
+        Modifier.padding(top = 72.dp).width(640.dp).onPreviewKeyEvent { event ->
           if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
           when (event.key) {
             Key.Escape -> {
@@ -172,17 +182,23 @@ private fun SearchOverlay(onClose: () -> Unit, onRootFocusRequested: () -> Unit)
           singleLine = true,
           modifier = Modifier.fillMaxWidth().focusRequester(textFieldFocusRequester).focusable(),
           keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-          keyboardActions = KeyboardActions(),
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-          text = "Results will appear here",
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.align(Alignment.CenterHorizontally),
+          keyboardActions = KeyboardActions(onSearch = { onSearchSubmitted(query) }),
         )
         Spacer(modifier = Modifier.height(8.dp))
+        Box(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+          content(query, onClose)
+        }
       }
     }
   }
+}
+
+@Composable
+private fun DefaultSearchHint() {
+  Text(
+    text = "Results will appear here",
+    style = MaterialTheme.typography.bodyMedium,
+    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+  )
 }

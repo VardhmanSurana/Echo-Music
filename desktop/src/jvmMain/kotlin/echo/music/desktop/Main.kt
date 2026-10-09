@@ -32,15 +32,34 @@ import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import echo.music.desktop.auth.LocalAuthServer
+import echo.music.desktop.local.DesktopPreferences
+import echo.music.desktop.local.LocalMediaScanner
+import echo.music.desktop.playback.DesktopPlaybackResolver
 import echo.music.desktop.system.MprisService
 import echo.music.desktop.system.MutableWindowVisibilitySource
 import echo.music.desktop.system.PerformanceGovernor
 import echo.music.desktop.system.TrayManager
 import echo.music.desktop.ui.components.MiniPlayer
+import echo.music.desktop.ui.navigation.DesktopDestination
+import echo.music.desktop.ui.navigation.PlaceholderDestination
+import echo.music.desktop.ui.screens.ExploreScreen
+import echo.music.desktop.ui.screens.ExploreStateHolder
+import echo.music.desktop.ui.screens.HomeScreen
+import echo.music.desktop.ui.screens.HomeStateHolder
+import echo.music.desktop.ui.screens.LibraryScreen
+import echo.music.desktop.ui.screens.LibraryStateHolder
+import echo.music.desktop.ui.screens.LibraryTab
+import echo.music.desktop.ui.screens.LocalMusicScreen
+import echo.music.desktop.ui.screens.SearchOverlayContent
+import echo.music.desktop.ui.screens.SearchStateHolder
+import echo.music.desktop.ui.screens.SettingsScreen
+import echo.music.desktop.ui.screens.chooseDirectory
 import echo.music.desktop.ui.shell.DesktopShell
 import echo.music.desktop.ui.shell.DesktopShellState
 import echo.music.desktop.ui.theme.LocalRenderBudget
 import echo.music.desktop.ui.theme.Theme
+import echo.music.desktop.ui.theme.ThemeMode
+import echo.music.desktop.ui.theme.ThemeSettings
 import echo.music.playback.EngineType
 import echo.music.playback.PlaybackManager
 
@@ -48,6 +67,19 @@ fun main() = application {
   val windowState = rememberWindowState()
   val shellState = remember { DesktopShellState() }
   val appScope = rememberCoroutineScope()
+
+  val preferences = remember { DesktopPreferences() }
+  val scanner = remember {
+    LocalMediaScanner(
+      initialRoots = runCatching { preferences.watchedDirs() }.getOrDefault(emptyList()),
+      preferences = preferences,
+    )
+  }
+  val resolver = remember { DesktopPlaybackResolver(appScope) }
+  val homeState = remember { HomeStateHolder(appScope, resolver) }
+  val exploreState = remember { ExploreStateHolder(appScope, resolver) }
+  val libraryState = remember { LibraryStateHolder(appScope, resolver) }
+  val searchState = remember { SearchStateHolder(appScope, resolver) }
 
   val bringToFront = remember { mutableStateOf(false) }
   val exitRequested = remember { mutableStateOf(false) }
@@ -79,7 +111,16 @@ fun main() = application {
       },
       onQuit = { exitRequested.value = true },
     )
-    PlaybackManager.setEngine(EngineType.AUTO)
+    val persistedTheme =
+      preferences.themeMode?.let { stored -> runCatching { ThemeMode.valueOf(stored) }.getOrNull() }
+    if (persistedTheme != null) {
+      ThemeSettings.setMode(persistedTheme)
+    }
+    val persistedEngine =
+      preferences.engineType?.let { stored ->
+        runCatching { EngineType.valueOf(stored) }.getOrNull()
+      }
+    PlaybackManager.setEngine(persistedEngine ?: EngineType.AUTO)
   }
 
   LaunchedEffect(exitRequested.value) {
@@ -114,6 +155,28 @@ fun main() = application {
           windowState = windowState,
           onCloseRequest = { exitRequested.value = true },
           onEnterImmersive = { immersiveVisible = !immersiveVisible },
+          onOpenFolder = { chooseDirectory()?.let { scanner.addRoot(it) } },
+          onRescanLocalFolders = { scanner.rescan() },
+          content = { destination ->
+            when (destination) {
+              DesktopDestination.HOME -> HomeScreen(homeState)
+              DesktopDestination.EXPLORE -> ExploreScreen(exploreState)
+              DesktopDestination.LIBRARY ->
+                LibraryScreen(libraryState, initialTab = LibraryTab.PLAYLISTS)
+              DesktopDestination.LIKED_SONGS ->
+                LibraryScreen(libraryState, initialTab = LibraryTab.LIKED_SONGS)
+              DesktopDestination.PLAYLISTS ->
+                LibraryScreen(libraryState, initialTab = LibraryTab.PLAYLISTS)
+              DesktopDestination.ARTISTS -> LibraryScreen(libraryState)
+              DesktopDestination.LOCAL_LIBRARY -> LocalMusicScreen(scanner)
+              DesktopDestination.FOLDERS -> LocalMusicScreen(scanner)
+              DesktopDestination.SETTINGS -> SettingsScreen(preferences, scanner)
+              DesktopDestination.DOWNLOADED_OFFLINE -> PlaceholderDestination(destination)
+              DesktopDestination.EQUALIZER -> PlaceholderDestination(destination)
+            }
+          },
+          searchContent = { query, onClose -> SearchOverlayContent(query, searchState, onClose) },
+          onSearchSubmitted = { searchState.playFirstResult() },
         )
       }
     }

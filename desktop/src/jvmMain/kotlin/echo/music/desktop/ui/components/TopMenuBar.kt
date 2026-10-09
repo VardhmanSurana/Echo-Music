@@ -2,9 +2,7 @@ package echo.music.desktop.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,14 +21,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CropSquare
 import androidx.compose.material.icons.filled.Minimize
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,10 +44,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
-import com.music.innertube.YouTube
 import echo.music.desktop.auth.AuthSyncState
 import echo.music.desktop.ui.shell.DesktopShellState
 import echo.music.desktop.ui.shell.LocalDesktopWindowState
@@ -90,7 +84,7 @@ fun TopMenuBar(
 ) {
   var cookieDialogVisible by remember { mutableStateOf(false) }
   if (cookieDialogVisible) {
-    ManualCookieDialog(onDismiss = { cookieDialogVisible = false })
+    CookieInputDialog(onDismiss = { cookieDialogVisible = false })
   }
   Row(
     modifier =
@@ -376,41 +370,6 @@ private fun AccountMenu(onManualCookieInput: () -> Unit) {
       },
     )
     DropdownMenuItem(text = { Text("Sync Spotify Playlists…") }, enabled = false, onClick = {})
-  }
-}
-
-@Composable
-private fun ManualCookieDialog(onDismiss: () -> Unit) {
-  var text by remember { mutableStateOf("") }
-  Dialog(visible = true, onCloseRequest = onDismiss, title = "Manual Cookie Input") {
-    Surface {
-      Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-          "Paste the full Cookie header from an authenticated youtube.com session.",
-          style = MaterialTheme.typography.bodyMedium,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedTextField(
-          value = text,
-          onValueChange = { text = it },
-          label = { Text("Cookie header") },
-          modifier = Modifier.width(420.dp).height(120.dp),
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.width(420.dp)) {
-          TextButton(onClick = onDismiss) { Text("Cancel") }
-          Spacer(modifier = Modifier.width(8.dp))
-          Button(
-            onClick = {
-              YouTube.cookie = text.trim().ifBlank { null }
-              onDismiss()
-            }
-          ) {
-            Text("Save")
-          }
-        }
-      }
-    }
   }
 }
 
