@@ -27,14 +27,14 @@ if (hasGoogleServicesConfig) {
 android {
   namespace = "echo.music.iad1tya"
   compileSdk = 37
-  ndkVersion = "27.1.12297006"
+  ndkVersion = "28.2.13676358"
 
   defaultConfig {
     applicationId = "echo.music.iad1tya"
     minSdk = 26
     targetSdk = 36
-    versionCode = 162
-    versionName = "1.4.1"
+    versionCode = 163
+    versionName = "1.4.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     vectorDrawables.useSupportLibrary = true

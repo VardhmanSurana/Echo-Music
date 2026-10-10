@@ -77,6 +77,8 @@ val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
 val ThumbnailCornerRadiusKey = floatPreferencesKey("thumbnailCornerRadius")
 val CropAlbumArtKey = booleanPreferencesKey("cropAlbumArt")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
+val VarispeedKey = booleanPreferencesKey("varispeed")
+
 val PauseOnMute = booleanPreferencesKey("pauseOnMute")
 val ResumeOnBluetoothConnectKey = booleanPreferencesKey("resumeOnBluetoothConnect")
 val KeepScreenOn = booleanPreferencesKey("keepScreenOn")
@@ -487,6 +489,9 @@ val TranslateModeKey = stringPreferencesKey("translateMode")
 val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
 val AutoTranslateKey = booleanPreferencesKey("autoTranslate")
 val AiRecommendationsKey = booleanPreferencesKey("aiRecommendations")
+val LastAiRecommendationUpdateDayKey = longPreferencesKey("lastAiRecommendationUpdateDay")
+val CreateFromTasteDailyKey = booleanPreferencesKey("createFromTasteDaily")
+val LastCreateFromTasteUpdateDayKey = longPreferencesKey("lastCreateFromTasteUpdateDay")
 val DeeplApiKey = stringPreferencesKey("deeplApiKey")
 val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
 val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
@@ -846,3 +851,10 @@ val BlockedArtistsKey =
 
 val EnableBitPerfectUsbDacKey = booleanPreferencesKey("enable_bit_perfect_usb_dac")
 val UsbDacVolumeModeKey = stringPreferencesKey("usb_dac_volume_mode")
+
+enum class RecommendationSource {
+    YOUTUBE,
+    SPOTIFY
+}
+
+val RecommendationSourceKey = stringPreferencesKey("recommendation_source")
